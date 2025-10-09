@@ -1,0 +1,75 @@
+'use client';
+
+import { useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { NotificationDropdown } from './notification-dropdown';
+
+export function Header() {
+  const handleViewAllNotifications = () => {
+    // Navigate to notifications page - will be handled by sidebar
+    window.location.href = '/notifications';
+  };
+
+  return (
+    <>
+      <header className="flex items-center justify-between mb-8">
+        {/* Search */}
+        <div className="flex-1 max-w-lg">
+          <div className="relative">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Search..."
+              className="w-full bg-card border border-border rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        </div>
+
+        {/* User Actions */}
+        <div className="flex items-center space-x-6">
+          {/* Notifications Dropdown */}
+          <NotificationDropdown 
+            onViewAll={handleViewAllNotifications} 
+            onClose={() => {}} // Will be handled by dropdown state
+          />
+
+          {/* User Profile */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center space-x-3 cursor-pointer">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEDhjvZxwXBGeQrTHHTedlQ79iObGAO9gJwTQ8KWlbK9RK7w_oGWfYweHlOdA-SkeMRUNjamvXIBbeGnOz7cIKQHlOVgZf4vD1BQbLDWcHtQ4IP7kEyYBqQ8As-bHYN_27DUaszBl4TfFlkrXhB1snOrlaoi1Wh_O_w4188QMikFs5Fa9cMBbiP-9-Xfn2GJLb2mvPZcHhcj6nzXWlAv2vIcb47vCvXZ2Btu9aWElFUFNvzWD20Pj24e_ZXeZCW59AwTJmiEP4nEXt" />
+                  <AvatarFallback>AD</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-sm">Admin</p>
+                  <p className="text-xs text-muted-foreground">SafeFleet Admin</p>
+                </div>
+                <span className="material-icons-outlined text-muted-foreground">
+                  expand_more
+                </span>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem>Profile</DropdownMenuItem>
+              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Sign out</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+    </>
+  );
+}

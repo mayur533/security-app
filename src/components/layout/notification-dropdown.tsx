@@ -1,0 +1,157 @@
+'use client';
+
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  time: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  unread: boolean;
+}
+
+const sampleNotifications: Notification[] = [
+  {
+    id: '1',
+    title: 'New SOS Alert',
+    message: 'Emergency alert triggered in University Campus',
+    time: '2 min ago',
+    type: 'error',
+    unread: true,
+  },
+  {
+    id: '2',
+    title: 'User Registration',
+    message: 'New user joined the security network',
+    time: '15 min ago',
+    type: 'success',
+    unread: true,
+  },
+  {
+    id: '3',
+    title: 'Geofence Created',
+    message: 'New security zone added to Downtown Area',
+    time: '1 hour ago',
+    type: 'info',
+    unread: false,
+  },
+  {
+    id: '4',
+    title: 'System Update',
+    message: 'Security protocols updated successfully',
+    time: '3 hours ago',
+    type: 'info',
+    unread: false,
+  },
+];
+
+const getNotificationIcon = (type: Notification['type']) => {
+  switch (type) {
+    case 'error':
+      return 'warning';
+    case 'success':
+      return 'check_circle';
+    case 'warning':
+      return 'info';
+    case 'info':
+    default:
+      return 'notifications';
+  }
+};
+
+const getNotificationColor = (type: Notification['type']) => {
+  switch (type) {
+    case 'error':
+      return 'text-red-600';
+    case 'success':
+      return 'text-green-600';
+    case 'warning':
+      return 'text-orange-600';
+    case 'info':
+    default:
+      return 'text-blue-600';
+  }
+};
+
+interface NotificationDropdownProps {
+  onViewAll: () => void;
+  onClose: () => void;
+}
+
+export function NotificationDropdown({ onViewAll, onClose }: NotificationDropdownProps) {
+  const [notifications] = useState<Notification[]>(sampleNotifications);
+  const [open, setOpen] = useState(false);
+  const unreadCount = notifications.filter(n => n.unread).length;
+
+  const handleViewAll = () => {
+    onViewAll();
+    setOpen(false);
+  };
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="relative">
+          <span className="material-icons-outlined">notifications</span>
+          {unreadCount > 0 && (
+            <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 bg-red-500 text-white text-xs flex items-center justify-center">
+              {unreadCount}
+            </Badge>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80">
+        <div className="p-4 border-b">
+          <h3 className="font-semibold text-sm">Notifications</h3>
+          <p className="text-xs text-muted-foreground">{unreadCount} unread</p>
+        </div>
+        
+        <div className="max-h-64 overflow-y-auto">
+          {notifications.slice(0, 4).map((notification) => (
+            <div
+              key={notification.id}
+              className={`p-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
+                notification.unread ? 'bg-blue-50/50' : ''
+              }`}
+            >
+              <div className="flex items-start space-x-3">
+                <span className={`material-icons-outlined text-sm mt-0.5 ${getNotificationColor(notification.type)}`}>
+                  {getNotificationIcon(notification.type)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{notification.title}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                </div>
+                {notification.unread && (
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <DropdownMenuSeparator />
+        <div className="p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center"
+            onClick={handleViewAll}
+          >
+            View All Notifications
+          </Button>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
