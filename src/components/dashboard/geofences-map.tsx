@@ -42,9 +42,30 @@ const geofenceLocations: GeofenceLocation[] = [
 export function GeofencesMap() {
   const [isClient, setIsClient] = useState(false);
   const [mapError, setMapError] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    
+    // Detect application theme
+    const checkTheme = () => {
+      const hasDarkClass = document.documentElement.classList.contains('dark');
+      setIsDarkMode(hasDarkClass);
+    };
+
+    checkTheme();
+
+    // Watch for theme changes
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   if (!isClient) {
@@ -90,18 +111,52 @@ export function GeofencesMap() {
   }
 
   return (
-    <div className="lg:col-span-2 bg-card p-6 rounded-lg shadow-md border">
-      <h3 className="font-semibold mb-4 text-lg">Geofences Overview</h3>
-      <div className="relative h-96 rounded-md overflow-hidden">
+    <div className={`lg:col-span-2 bg-card pt-2 pb-6 px-6 rounded-lg shadow-md border overflow-hidden ${
+      isFullscreen ? 'fixed inset-0 z-50 rounded-none p-0' : ''
+    }`}>
+      {/* Map Header - Compact */}
+      <div className={`flex items-center justify-between mb-2 ${
+        isFullscreen ? 'absolute top-2 left-2 right-2 z-[1000]' : ''
+      }`}>
+        {!isFullscreen && (
+          <h3 className="font-semibold text-sm">Geofences Overview</h3>
+        )}
+        
+        {/* Fullscreen Toggle */}
+        <button
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className={`p-1.5 transition-colors flex items-center justify-center ${
+            isFullscreen 
+              ? 'bg-card/80 backdrop-blur-sm hover:bg-card rounded-lg shadow-lg border border-border/50'
+              : 'hover:bg-muted rounded'
+          }`}
+          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+        >
+          <span className="material-icons text-base text-muted-foreground hover:text-foreground">
+            {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+          </span>
+        </button>
+      </div>
+      
+      <div 
+        className={`relative overflow-hidden ${
+          isFullscreen ? 'h-screen' : 'h-96 rounded-md'
+        }`}
+        style={isFullscreen ? { height: '100vh' } : {}}
+      >
         <MapContainer
           center={[20, 0]}
           zoom={2}
-          style={{ height: '100%', width: '100%' }}
+          style={{ height: '100%', width: '100%', backgroundColor: isDarkMode ? '#0f172a' : '#e5e7eb' }}
           className="z-0"
         >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url={
+              isDarkMode
+                ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            }
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
           {geofenceLocations.map((location) => (
             <Marker key={location.id} position={[location.lat, location.lng]}>

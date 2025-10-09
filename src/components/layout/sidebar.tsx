@@ -64,7 +64,7 @@ export function Sidebar() {
           </span>
           {isExpanded && (
             <div className="flex flex-col">
-              <span className="text-xl font-bold text-primary">SafeFleet</span>
+              <span className="text-xl font-bold text-primary">SafeTNet</span>
               <span className="text-xs text-muted-foreground">Admin Panel</span>
             </div>
           )}

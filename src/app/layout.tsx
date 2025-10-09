@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/lib/providers/query-provider";
-import { MainLayout } from "@/components/layout/main-layout";
+import { ConditionalLayout } from "@/components/layout/conditional-layout";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { AuthProvider } from "@/lib/contexts/auth-context";
 import { Toaster } from "sonner";
 
 const poppins = Poppins({
@@ -13,8 +14,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "SafeFleet Admin Panel",
-  description: "Fleet management and monitoring dashboard",
+  title: "SafeTNet Admin Panel",
+  description: "Personal safety and community engagement platform",
 };
 
 export default function RootLayout({
@@ -27,10 +28,17 @@ export default function RootLayout({
       <body className={`${poppins.variable} font-sans antialiased`}>
         <ErrorBoundary>
           <QueryProvider>
-            <MainLayout>
-              {children}
-            </MainLayout>
-            <Toaster richColors position="top-right" />
+            <AuthProvider>
+              <ConditionalLayout>
+                {children}
+              </ConditionalLayout>
+              <Toaster 
+                richColors 
+                position="top-right" 
+                closeButton 
+                duration={4000}
+              />
+            </AuthProvider>
           </QueryProvider>
         </ErrorBoundary>
       </body>
