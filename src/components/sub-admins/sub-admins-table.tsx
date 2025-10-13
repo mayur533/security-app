@@ -10,7 +10,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,15 +28,6 @@ import {
 import { useSearch } from '@/lib/contexts/search-context';
 import { usersService, type User } from '@/lib/services/users';
 import { CardLoading, TableLoading } from '@/components/ui/content-loading';
-
-interface SubAdmin {
-  id: string;
-  name: string;
-  email: string;
-  assignedArea: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
 
 const initialSubAdmins: SubAdmin[] = [
   {
@@ -113,15 +112,20 @@ const initialSubAdmins: SubAdmin[] = [
   },
 ];
 
-type SortField = 'name' | 'email' | 'assignedArea' | 'createdAt';
+type SortField = 'username' | 'email' | 'date_joined';
 type SortOrder = 'asc' | 'desc';
 type FilterStatus = 'all' | 'active' | 'inactive';
 
-export function SubAdminsTable() {
+interface SubAdminsTableProps {
+  onEditSubAdmin?: (subAdminId: number) => void;
+  refreshTrigger?: number;
+}
+
+export function SubAdminsTable({ onEditSubAdmin, refreshTrigger = 0 }: SubAdminsTableProps) {
   const [subAdmins, setSubAdmins] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { searchQuery } = useSearch();
-  const [sortField, setSortField] = useState<SortField>('createdAt');
+  const [sortField, setSortField] = useState<SortField>('date_joined');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -129,11 +133,12 @@ export function SubAdminsTable() {
   const [showPerPageMenu, setShowPerPageMenu] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [viewDetailsUser, setViewDetailsUser] = useState<User | null>(null);
 
-  // Fetch sub-admins on mount
+  // Fetch sub-admins on mount and when refreshTrigger changes
   useEffect(() => {
     fetchSubAdmins();
-  }, []);
+  }, [refreshTrigger]);
 
   const fetchSubAdmins = async () => {
     try {
@@ -143,9 +148,8 @@ export function SubAdminsTable() {
       const subAdminUsers = data.filter(user => 
         user.role === 'SUB_ADMIN' || user.role === 'SUB ADMIN'
       );
-      console.log('📊 Sub-Admins fetched:', subAdminUsers.length);
       setSubAdmins(subAdminUsers);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to fetch sub-admins:', error);
       toast.error('Failed to load sub-admins');
     } finally {
@@ -221,8 +225,8 @@ export function SubAdminsTable() {
     );
   };
 
-  const getStatusBadge = (status: 'active' | 'inactive') => {
-    if (status === 'active') {
+  const getStatusBadge = (isActive: boolean) => {
+    if (isActive) {
       return (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
           <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
@@ -652,7 +656,7 @@ export function SubAdminsTable() {
                       <span className="text-sm">{admin.organization?.name || 'Not Assigned'}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-4">{getStatusBadge(admin.is_active ? 'active' : 'inactive')}</TableCell>
+                  <TableCell className="py-4 px-4">{getStatusBadge(admin.is_active)}</TableCell>
                   <TableCell className="py-4 px-4 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -665,7 +669,10 @@ export function SubAdminsTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem 
+                          className="cursor-pointer"
+                          onClick={() => onEditSubAdmin?.(admin.id)}
+                        >
                           <span className="material-icons text-sm mr-2">edit</span>
                           Edit
                         </DropdownMenuItem>
@@ -674,11 +681,14 @@ export function SubAdminsTable() {
                           onClick={() => handleToggleStatus(admin.id)}
                         >
                           <span className="material-icons text-sm mr-2">
-                            {admin.status === 'active' ? 'block' : 'check_circle'}
+                            {admin.is_active ? 'block' : 'check_circle'}
                           </span>
-                          {admin.status === 'active' ? 'Deactivate' : 'Activate'}
+                          {admin.is_active ? 'Deactivate' : 'Activate'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem 
+                          className="cursor-pointer"
+                          onClick={() => setViewDetailsUser(admin)}
+                        >
                           <span className="material-icons text-sm mr-2">visibility</span>
                           View Details
                         </DropdownMenuItem>
@@ -713,6 +723,138 @@ export function SubAdminsTable() {
           Page {currentPage} of {totalPages} • Sorted by: {sortField} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
         </p>
       </div>
+
+      {/* View Details Modal */}
+      {viewDetailsUser && (
+        <Dialog open={!!viewDetailsUser} onOpenChange={() => setViewDetailsUser(null)}>
+          <DialogContent className="sm:max-w-[600px] bg-card/95 backdrop-blur-xl border-border/50 p-4">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="material-icons text-indigo-600 mr-2">
+                  admin_panel_settings
+                </span>
+                Sub-Admin Details
+              </DialogTitle>
+              <DialogDescription>
+                Complete information about this sub-admin
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 mt-3">
+              {/* User Info Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Username */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Username</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.username}</p>
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.email || 'Not set'}</p>
+                </div>
+
+                {/* First Name */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">First Name</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.first_name || 'Not set'}</p>
+                </div>
+
+                {/* Last Name */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Last Name</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.last_name || 'Not set'}</p>
+                </div>
+
+                {/* Role */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Role</Label>
+                  <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Sub-Admin
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    viewDetailsUser.is_active 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {viewDetailsUser.is_active ? 'Active' : 'Inactive'}
+                  </div>
+                </div>
+
+                {/* Date Joined */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Date Joined</Label>
+                  <p className="text-base font-medium">
+                    {new Date(viewDetailsUser.date_joined).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
+
+                {/* Last Login */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Last Login</Label>
+                  <p className="text-base font-medium">
+                    {viewDetailsUser.last_login 
+                      ? new Date(viewDetailsUser.last_login).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                      : 'Never'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Organization */}
+              {viewDetailsUser.organization && (
+                <div className="space-y-1 pt-2 border-t">
+                  <Label className="text-sm font-medium text-muted-foreground">Organization</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.organization.name}</p>
+                </div>
+              )}
+
+              {/* User ID */}
+              <div className="space-y-1 pt-2 border-t">
+                <Label className="text-sm font-medium text-muted-foreground">User ID</Label>
+                <p className="text-base font-mono text-sm">{viewDetailsUser.id}</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-3 border-t mt-3">
+              <Button
+                variant="outline"
+                onClick={() => setViewDetailsUser(null)}
+              >
+                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
+                Close
+              </Button>
+              {onEditSubAdmin && (
+                <Button
+                  onClick={() => {
+                    setViewDetailsUser(null);
+                    onEditSubAdmin(viewDetailsUser.id);
+                  }}
+                  className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+                >
+                  <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>edit</span>
+                  Edit Sub-Admin
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

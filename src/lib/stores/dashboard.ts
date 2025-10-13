@@ -68,29 +68,22 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
   fetchStats: async () => {
     set({ isLoading: true });
     try {
-      console.log('📊 Fetching dashboard KPIs...');
       const response = await fetch(API_ENDPOINTS.DASHBOARD.KPIS, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
 
-      console.log('📊 KPI Response status:', response.status);
-
       if (response.ok) {
         const data: DashboardKPIResponse = await response.json();
-        console.log('📊 KPI Data received:', data);
         
-        const newStats = {
-          totalSubAdmins: data.active_sub_admins || 0,
-          activeGeofences: data.active_geofences || 0,
-          activeUsers: data.total_users || 0,
-          totalAlerts: data.alerts_today || 0,
-        };
-        
-        console.log('📊 Setting stats:', newStats);
-        set({ stats: newStats });
-      } else {
-        console.error('📊 KPI fetch failed with status:', response.status);
+        set({
+          stats: {
+            totalSubAdmins: data.active_sub_admins || 0,
+            activeGeofences: data.active_geofences || 0,
+            activeUsers: data.total_users || 0,
+            totalAlerts: data.alerts_today || 0,
+          },
+        });
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);

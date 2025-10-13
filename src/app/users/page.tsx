@@ -2,21 +2,26 @@
 
 import { useState } from 'react';
 import { UsersTable } from '@/components/users/users-table';
-import { AddUserModal } from '@/components/users/add-user-modal';
+import { EditUserModal } from '@/components/users/edit-user-modal';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function UsersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<number | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleAddUser = () => {
-    setEditingUser(null);
+    toast.info('User creation is not yet implemented. Users can self-register via the registration page.');
+  };
+
+  const handleEditUser = (userId: number) => {
+    setEditingUser(userId);
     setIsModalOpen(true);
   };
 
-  const handleEditUser = (userId: string) => {
-    setEditingUser(userId);
-    setIsModalOpen(true);
+  const handleUserUpdated = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return (
@@ -37,16 +42,17 @@ export default function UsersPage() {
       </div>
 
       {/* Users Table - has its own loading state */}
-      <UsersTable onEditUser={handleEditUser} />
+      <UsersTable onEditUser={handleEditUser} refreshTrigger={refreshTrigger} />
 
-      {/* Add/Edit User Modal */}
-      <AddUserModal
+      {/* Edit User Modal */}
+      <EditUserModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setEditingUser(null);
         }}
-        editingUserId={editingUser}
+        userId={editingUser}
+        onUserUpdated={handleUserUpdated}
       />
     </div>
   );

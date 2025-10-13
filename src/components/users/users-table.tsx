@@ -16,7 +16,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { useSearch } from '@/lib/contexts/search-context';
 import { usersService, type User } from '@/lib/services/users';
 import { CardLoading, TableLoading } from '@/components/ui/content-loading';
@@ -115,7 +123,8 @@ const initialUsers: User[] = [
 ];
 
 interface UsersTableProps {
-  onEditUser: (userId: string) => void;
+  onEditUser: (userId: number) => void;
+  refreshTrigger?: number;
 }
 
 type SortField = 'username' | 'email' | 'role' | 'date_joined';
@@ -123,7 +132,7 @@ type SortOrder = 'asc' | 'desc';
 type FilterRole = 'all' | 'SUPER_ADMIN' | 'SUB_ADMIN' | 'USER';
 type FilterStatus = 'all' | 'active' | 'inactive';
 
-export function UsersTable({ onEditUser }: UsersTableProps) {
+export function UsersTable({ onEditUser, refreshTrigger = 0 }: UsersTableProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { searchQuery } = useSearch();
@@ -136,17 +145,17 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
   const [showPaginationMenu, setShowPaginationMenu] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [viewDetailsUser, setViewDetailsUser] = useState<User | null>(null);
 
-  // Fetch users on mount
+  // Fetch users on mount and when refreshTrigger changes
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [refreshTrigger]);
 
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
       const data = await usersService.getAll();
-      console.log('📊 Total users from API:', data.length);
       
       // Filter to show only regular USER role (exclude SUPER_ADMIN and SUB_ADMIN)
       const regularUsers = data.filter(user => 
@@ -155,9 +164,8 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
         user.role !== 'SUPER ADMIN' && 
         user.role !== 'SUB ADMIN'
       );
-      console.log('👤 Regular USER role count:', regularUsers.length);
       setUsers(regularUsers);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to fetch users:', error);
       toast.error('Failed to load users');
     } finally {
@@ -703,11 +711,14 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
                           onClick={() => handleToggleStatus(user.id)}
                         >
                           <span className="material-icons text-sm mr-2">
-                            {user.status === 'active' ? 'block' : 'check_circle'}
+                            {user.is_active ? 'block' : 'check_circle'}
                           </span>
-                          {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                          {user.is_active ? 'Deactivate' : 'Activate'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem 
+                          className="cursor-pointer"
+                          onClick={() => setViewDetailsUser(user)}
+                        >
                           <span className="material-icons text-sm mr-2">visibility</span>
                           View Details
                         </DropdownMenuItem>
@@ -740,6 +751,128 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
           Page {currentPage} of {totalPages} • Sorted by: {sortField} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
         </p>
       </div>
+
+      {/* View Details Modal */}
+      {viewDetailsUser && (
+        <Dialog open={!!viewDetailsUser} onOpenChange={() => setViewDetailsUser(null)}>
+          <DialogContent className="sm:max-w-[600px] bg-card/95 backdrop-blur-xl border-border/50 p-4">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="material-icons text-indigo-600 mr-2">
+                  person
+                </span>
+                User Details
+              </DialogTitle>
+              <DialogDescription>
+                Complete information about this user
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 mt-3">
+              {/* User Info Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Username */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Username</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.username}</p>
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.email}</p>
+                </div>
+
+                {/* First Name */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">First Name</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.first_name || 'Not set'}</p>
+                </div>
+
+                {/* Last Name */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Last Name</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.last_name || 'Not set'}</p>
+                </div>
+
+                {/* Role */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Role</Label>
+                  <div>{getRoleBadge(viewDetailsUser.role)}</div>
+                </div>
+
+                {/* Status */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <div>{getStatusBadge(viewDetailsUser.is_active)}</div>
+                </div>
+
+                {/* Date Joined */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Date Joined</Label>
+                  <p className="text-base font-medium">
+                    {new Date(viewDetailsUser.date_joined).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
+
+                {/* Last Login */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Last Login</Label>
+                  <p className="text-base font-medium">
+                    {viewDetailsUser.last_login 
+                      ? new Date(viewDetailsUser.last_login).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                      : 'Never'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Organization */}
+              {viewDetailsUser.organization && (
+                <div className="space-y-1 pt-2 border-t">
+                  <Label className="text-sm font-medium text-muted-foreground">Organization</Label>
+                  <p className="text-base font-medium">{viewDetailsUser.organization.name}</p>
+                </div>
+              )}
+
+              {/* User ID */}
+              <div className="space-y-1 pt-2 border-t">
+                <Label className="text-sm font-medium text-muted-foreground">User ID</Label>
+                <p className="text-base font-mono text-sm">{viewDetailsUser.id}</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-3 border-t mt-3">
+              <Button
+                variant="outline"
+                onClick={() => setViewDetailsUser(null)}
+              >
+                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  setViewDetailsUser(null);
+                  onEditUser(viewDetailsUser.id);
+                }}
+                className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+              >
+                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>edit</span>
+                Edit User
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

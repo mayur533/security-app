@@ -16,20 +16,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { CardLoading, TableLoading } from '@/components/ui/content-loading';
-import { promocodesService } from '@/lib/services/promocodes';
-
-interface Promocode {
-  id: number;
-  code: string;
-  discount_percentage: number;
-  expiry_date: string;
-  is_active: boolean;
-  is_valid?: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { promocodesService, Promocode } from '@/lib/services/promocodes';
 
 type SortField = 'code' | 'discount_percentage' | 'expiry_date' | 'created_at';
 type SortOrder = 'asc' | 'desc';
@@ -47,6 +44,7 @@ export default function PromocodesPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [viewDetailsPromocode, setViewDetailsPromocode] = useState<Promocode | null>(null);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -686,9 +684,16 @@ export default function PromocodesPage() {
                             onClick={() => handleToggleStatus(promo.id)}
                           >
                             <span className="material-icons text-sm mr-2">
-                              {promo.status === 'active' ? 'block' : 'check_circle'}
+                              {promo.is_active ? 'block' : 'check_circle'}
                             </span>
-                            {promo.status === 'active' ? 'Deactivate' : 'Activate'}
+                            {promo.is_active ? 'Deactivate' : 'Activate'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="cursor-pointer"
+                            onClick={() => setViewDetailsPromocode(promo)}
+                          >
+                            <span className="material-icons text-sm mr-2">visibility</span>
+                            View Details
                           </DropdownMenuItem>
                           <DropdownMenuItem className="cursor-pointer">
                             <span className="material-icons text-sm mr-2">content_copy</span>
@@ -809,6 +814,129 @@ export default function PromocodesPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* View Details Modal */}
+      {viewDetailsPromocode && (
+        <Dialog open={!!viewDetailsPromocode} onOpenChange={() => setViewDetailsPromocode(null)}>
+          <DialogContent className="sm:max-w-[600px] bg-card/95 backdrop-blur-xl border-border/50 p-4">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="material-icons text-indigo-600 mr-2">
+                  local_offer
+                </span>
+                Promocode Details
+              </DialogTitle>
+              <DialogDescription>
+                Complete information about this promocode
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 mt-3">
+              {/* Promocode Info Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Code */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Promocode</Label>
+                  <p className="text-base font-medium font-mono bg-muted/30 p-2 rounded">{viewDetailsPromocode.code}</p>
+                </div>
+
+                {/* Discount Percentage */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Discount</Label>
+                  <p className="text-base font-medium">{viewDetailsPromocode.discount_percentage}%</p>
+                </div>
+
+                {/* Expiry Date */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Expiry Date</Label>
+                  <p className="text-base font-medium">
+                    {new Date(viewDetailsPromocode.expiry_date).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
+
+                {/* Status */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    viewDetailsPromocode.is_active 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {viewDetailsPromocode.is_active ? 'Active' : 'Inactive'}
+                  </div>
+                </div>
+
+                {/* Valid Status */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Valid</Label>
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    viewDetailsPromocode.is_valid 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {viewDetailsPromocode.is_valid ? 'Valid' : 'Expired'}
+                  </div>
+                </div>
+
+                {/* Created At */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                  <p className="text-base font-medium">
+                    {new Date(viewDetailsPromocode.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Promocode ID */}
+              <div className="space-y-1 pt-2 border-t">
+                <Label className="text-sm font-medium text-muted-foreground">Promocode ID</Label>
+                <p className="text-base font-mono text-sm">{viewDetailsPromocode.id}</p>
+              </div>
+
+              {/* Last Updated */}
+              <div className="space-y-1 pt-2 border-t">
+                <Label className="text-sm font-medium text-muted-foreground">Last Updated</Label>
+                <p className="text-base font-medium">
+                  {new Date(viewDetailsPromocode.updated_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-3 border-t mt-3">
+              <Button
+                variant="outline"
+                onClick={() => setViewDetailsPromocode(null)}
+              >
+                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  setViewDetailsPromocode(null);
+                  handleEditPromocode(viewDetailsPromocode);
+                }}
+                className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+              >
+                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>edit</span>
+                Edit Promocode
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

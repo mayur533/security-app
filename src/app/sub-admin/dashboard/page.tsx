@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { GeofencesMap } from '@/components/dashboard/geofences-map';
 import { DailyAlertsChart } from '@/components/dashboard/daily-alerts-chart';
 import { API_ENDPOINTS, getAuthHeaders } from '@/lib/config/api';
@@ -45,7 +46,8 @@ export default function SubAdminDashboardPage() {
         const data = await response.json();
         setKpis(data);
       } else if (response.status === 403) {
-        console.log('Sub-Admin KPI endpoint requires SUB_ADMIN role. Showing default values.');
+        console.log('Sub-Admin KPI endpoint requires SUB_ADMIN role with organization. Showing default values.');
+        toast.error('Access Denied: You need an assigned organization to view this dashboard. Please contact your administrator.');
       }
     } catch (error) {
       console.error('Failed to fetch KPIs:', error);

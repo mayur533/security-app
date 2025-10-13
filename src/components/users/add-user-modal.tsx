@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -18,54 +19,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { usersService, type User } from '@/lib/services/users';
 
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  editingUserId: string | null;
+  editingUserId: number | null;
+  onUserUpdated?: () => void;
 }
 
-const roles = ['Admin', 'Sub-Admin', 'Security', 'Resident'];
-
-const geofences = [
-  'Downtown Area',
-  'University Campus',
-  'Shopping Mall',
-  'Business District',
-  'Residential Zone A',
-  'Industrial Park',
-  'Medical District',
-  'Entertainment Zone',
-];
-
-export function AddUserModal({ isOpen, onClose, editingUserId }: AddUserModalProps) {
+export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: AddUserModalProps) {
   const [formData, setFormData] = useState({
-    fullName: '',
+    username: '',
+    firstName: '',
+    lastName: '',
     email: '',
-    role: '',
-    password: '',
-    confirmPassword: '',
-    assignedGeofence: '',
+    isActive: true,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   const isEditing = !!editingUserId;
 
   useEffect(() => {
-    if (isEditing && isOpen) {
-      // In real app, fetch user data
+    if (isEditing && isOpen && editingUserId) {
+      fetchUserData(editingUserId);
+    } else if (!isOpen) {
+      // Reset form when modal closes
       setFormData({
-        fullName: 'John Doe',
-        email: 'john.doe@safefleet.com',
-        role: 'Security',
-        password: '',
-        confirmPassword: '',
-        assignedGeofence: 'Downtown Area',
+        username: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        isActive: true,
       });
+      setErrors({});
     }
-  }, [isEditing, isOpen]);
+  }, [isEditing, isOpen, editingUserId]);
+
+  const fetchUserData = async (userId: number) => {
+    try {
+      setIsLoadingUser(true);
+      const user = await usersService.getById(userId);
+      setFormData({
+        username: user.username,
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        email: user.email,
+        isActive: user.is_active,
+      });
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+      toast.error('Failed to load user data');
+    } finally {
+      setIsLoadingUser(false);
+    }
+  };
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -120,25 +131,33 @@ export function AddUserModal({ isOpen, onClose, editingUserId }: AddUserModalPro
       return;
     }
 
-    setIsSubmitting(true);
-
-    setTimeout(() => {
-      console.log(isEditing ? 'Updating user:' : 'Creating user:', formData);
-      setIsSubmitting(false);
-      
-      setFormData({
-        fullName: '',
-        email: '',
-        role: '',
-        password: '',
-        confirmPassword: '',
-        assignedGeofence: '',
-      });
-      
+    if (!isEditing) {
+      toast.info('User creation is not yet implemented. Users can self-register.');
       onClose();
-      
-      alert(isEditing ? 'User updated successfully!' : 'User created successfully!');
-    }, 1000);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Update user via API
+      await usersService.update(editingUserId!, {
+        username: formData.fullName.split(' ')[0].toLowerCase(),
+        first_name: formData.fullName.split(' ')[0],
+        last_name: formData.fullName.split(' ').slice(1).join(' '),
+        email: formData.email,
+        is_active: true,
+      });
+
+      toast.success('User updated successfully');
+      onUserUpdated?.();
+      onClose();
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error('Failed to update user');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {

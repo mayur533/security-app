@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -31,9 +31,14 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { searchQuery, setSearchQuery } = useSearch();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const [isClient, setIsClient] = useState(false);
   
   const placeholder = searchPlaceholders[pathname] || 'Search...';
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Clear search when route changes
   useEffect(() => {
@@ -88,11 +93,23 @@ export function Header() {
               <div className="flex items-center space-x-3 cursor-pointer">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEDhjvZxwXBGeQrTHHTedlQ79iObGAO9gJwTQ8KWlbK9RK7w_oGWfYweHlOdA-SkeMRUNjamvXIBbeGnOz7cIKQHlOVgZf4vD1BQbLDWcHtQ4IP7kEyYBqQ8As-bHYN_27DUaszBl4TfFlkrXhB1snOrlaoi1Wh_O_w4188QMikFs5Fa9cMBbiP-9-Xfn2GJLb2mvPZcHhcj6nzXWlAv2vIcb47vCvXZ2Btu9aWElFUFNvzWD20Pj24e_ZXeZCW59AwTJmiEP4nEXt" />
-                  <AvatarFallback>AD</AvatarFallback>
+                  <AvatarFallback>
+                    {isClient && user?.full_name?.charAt(0).toUpperCase() || isClient && user?.username?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="font-semibold text-sm">Admin</p>
-                  <p className="text-xs text-muted-foreground">SafeTNet Admin</p>
+                <div suppressHydrationWarning>
+                  <p className="font-semibold text-sm">
+                    {isClient ? (user?.full_name || user?.username || 'User') : 'User'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isClient ? (
+                      `SafeTNet ${user?.role === 'SUPER_ADMIN' || user?.role === 'SUPER ADMIN' 
+                        ? 'Admin' 
+                        : user?.role === 'SUB_ADMIN' || user?.role === 'SUB ADMIN' 
+                        ? 'Sub-Admin' 
+                        : 'User'}`
+                    ) : 'SafeTNet Admin'}
+                  </p>
                 </div>
                 <span className="material-icons-outlined text-muted-foreground">
                   expand_more

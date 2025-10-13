@@ -32,6 +32,11 @@ export const mainAdminNavigation: NavigationItem[] = [
     icon: 'confirmation_number',
   },
   {
+    name: 'Incidents',
+    href: '/incidents',
+    icon: 'report',
+  },
+  {
     name: 'Notifications',
     href: '/notifications',
     icon: 'notifications',

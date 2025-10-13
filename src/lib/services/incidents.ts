@@ -41,18 +41,29 @@ export const incidentsService = {
    * Get all incidents
    */
   async getAll(): Promise<Incident[]> {
-    const response = await fetch(API_ENDPOINTS.INCIDENTS.LIST, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    });
+    try {
+      const response = await fetch(API_ENDPOINTS.INCIDENTS.LIST, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch incidents');
+      // If backend returns 500 error (organization filtering issue), return empty array
+      if (response.status === 500) {
+        console.warn('Incidents API backend error - returning empty array');
+        return [];
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch incidents');
+      }
+
+      const data = await response.json();
+      // Handle paginated response - extract results array
+      return data.results || data;
+    } catch (error) {
+      console.error('Error fetching incidents:', error);
+      return []; // Return empty array to prevent crashes
     }
-
-    const data = await response.json();
-    // Handle paginated response - extract results array
-    return data.results || data;
   },
 
   /**

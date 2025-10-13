@@ -16,13 +16,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   // Get navigation based on user role
   const navigation = user ? getNavigationByRole(user.role) : [];
   
-  // Debug logging
-  if (user) {
-    console.log('🔐 User Role:', user.role);
-    console.log('📋 Navigation Items:', navigation.length);
-    console.log('🗺️ Navigation:', navigation);
-  }
-  
   // Determine sidebar title and subtitle based on role
   const isSubAdmin = user?.role.toUpperCase().replace(/_/g, ' ').includes('SUB');
   const sidebarTitle = 'SafeTNet';

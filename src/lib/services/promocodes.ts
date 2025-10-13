@@ -6,6 +6,7 @@ export interface Promocode {
   discount_percentage: number;
   expiry_date: string;
   is_active: boolean;
+  is_valid?: boolean;
   created_at: string;
   updated_at: string;
 }
