@@ -1,11 +1,108 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { StatsCards } from '@/components/dashboard/stats-cards';
 import { GeofencesMap } from '@/components/dashboard/geofences-map';
 import { DailyAlertsChart } from '@/components/dashboard/daily-alerts-chart';
 import { UserActivityChart } from '@/components/dashboard/user-activity-chart';
 import { RecentAlertsTable } from '@/components/dashboard/recent-alerts-table';
 import { AlertControls } from '@/components/dashboard/alert-controls';
+import { CardLoading, ContentLoading } from '@/components/ui/content-loading';
+import { useDashboardStore } from '@/lib/stores/dashboard';
 
 export default function DashboardPage() {
+  const [pageLoading, setPageLoading] = useState(true);
+  const { isLoading: statsLoading } = useDashboardStore();
+
+  useEffect(() => {
+    // Initial page load
+    const timer = setTimeout(() => {
+      setPageLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (pageLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Alert Controls skeleton */}
+        <div className="bg-card p-4 rounded-lg shadow-md border flex items-center justify-between animate-pulse">
+          <div className="h-4 w-48 bg-muted rounded"></div>
+          <div className="flex gap-2">
+            <div className="h-8 w-24 bg-muted rounded"></div>
+            <div className="h-8 w-24 bg-muted rounded"></div>
+          </div>
+        </div>
+
+        {/* Stats Cards Loading */}
+        <CardLoading count={4} />
+
+        {/* Main content grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Map Loading */}
+          <div className="lg:col-span-2 bg-card rounded-lg shadow-md border overflow-hidden" style={{ height: '500px' }}>
+            <ContentLoading text="Loading map..." />
+          </div>
+
+          {/* Security Overview Loading */}
+          <div className="bg-card p-6 rounded-lg shadow-md border">
+            <div className="h-5 w-32 bg-muted rounded mb-4 animate-pulse"></div>
+            <div className="space-y-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between animate-pulse" style={{ animationDelay: `${i * 50}ms` }}>
+                  <div className="h-3 w-32 bg-muted/60 rounded"></div>
+                  <div className="h-4 w-12 bg-muted rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Activity Loading */}
+          <div className="bg-card p-6 rounded-lg shadow-md border">
+            <div className="h-5 w-32 bg-muted rounded mb-4 animate-pulse"></div>
+            <div className="space-y-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex items-start space-x-3 animate-pulse" style={{ animationDelay: `${i * 50}ms` }}>
+                  <div className="w-2 h-2 bg-muted rounded-full mt-2"></div>
+                  <div className="flex-1 space-y-1">
+                    <div className="h-3 w-full bg-muted/60 rounded"></div>
+                    <div className="h-2 w-20 bg-muted/40 rounded"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Loading */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-card p-6 rounded-lg shadow-md border">
+            <div className="h-5 w-32 bg-muted rounded mb-4 animate-pulse"></div>
+            <div className="h-64 bg-muted/40 rounded animate-pulse"></div>
+          </div>
+          <div className="bg-card p-6 rounded-lg shadow-md border">
+            <div className="h-5 w-32 bg-muted rounded mb-4 animate-pulse"></div>
+            <div className="h-64 bg-muted/40 rounded animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Recent Alerts Table Loading */}
+        <div className="bg-card p-6 rounded-lg shadow-md border">
+          <div className="h-5 w-32 bg-muted rounded mb-4 animate-pulse"></div>
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex space-x-4 animate-pulse" style={{ animationDelay: `${i * 50}ms` }}>
+                <div className="h-4 flex-1 bg-muted/60 rounded"></div>
+                <div className="h-4 flex-1 bg-muted/60 rounded"></div>
+                <div className="h-4 flex-1 bg-muted/60 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <AlertControls />

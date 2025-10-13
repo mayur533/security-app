@@ -1,6 +1,15 @@
 'use client';
 
-export function GeofencesStats() {
+import { CardLoading } from '@/components/ui/content-loading';
+
+interface GeofencesStatsProps {
+  isLoading?: boolean;
+}
+
+export function GeofencesStats({ isLoading = false }: GeofencesStatsProps) {
+  if (isLoading) {
+    return <CardLoading count={3} />;
+  }
   const stats = [
     {
       title: 'Total Geofences',
@@ -66,5 +75,6 @@ export function GeofencesStats() {
     </div>
   );
 }
+
 
 

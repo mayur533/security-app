@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authService } from '@/lib/services/auth';
 
@@ -11,9 +11,16 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
   const isAuthenticated = authService.isAuthenticated();
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+
     // Public routes that don't require authentication
     const publicRoutes = ['/login', '/register'];
     const isPublicRoute = publicRoutes.includes(pathname);
@@ -25,9 +32,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       // Already authenticated and trying to access login/register
       router.push('/');
     }
-  }, [isAuthenticated, pathname, router]);
+  }, [isClient, isAuthenticated, pathname, router]);
 
-  // Show loading or nothing while redirecting
+  // During SSR or initial client render, show nothing to prevent hydration mismatch
+  if (!isClient) {
+    return null;
+  }
+
+  // Show loading while redirecting
   if (!isAuthenticated && pathname !== '/login' && pathname !== '/register') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -41,5 +53,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   return <>{children}</>;
 }
+
 
 

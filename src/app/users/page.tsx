@@ -36,7 +36,7 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      {/* Users Table */}
+      {/* Users Table - has its own loading state */}
       <UsersTable onEditUser={handleEditUser} />
 
       {/* Add/Edit User Modal */}
@@ -51,5 +51,6 @@ export default function UsersPage() {
     </div>
   );
 }
+
 
 

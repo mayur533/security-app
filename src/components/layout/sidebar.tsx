@@ -4,41 +4,15 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { NavigationItem } from '@/lib/config/navigation';
 
-const navigation = [
-  {
-    name: 'Dashboard',
-    href: '/',
-    icon: 'dashboard',
-  },
-  {
-    name: 'Sub-Admins',
-    href: '/sub-admins',
-    icon: 'supervisor_account',
-  },
-  {
-    name: 'Geofences',
-    href: '/geofences',
-    icon: 'public',
-  },
-  {
-    name: 'Users',
-    href: '/users',
-    icon: 'people',
-  },
-  {
-    name: 'Notifications',
-    href: '/notifications',
-    icon: 'notifications',
-  },
-  {
-    name: 'Analytics',
-    href: '/analytics',
-    icon: 'assessment',
-  },
-];
+interface SidebarProps {
+  navigation: NavigationItem[];
+  title?: string;
+  subtitle?: string;
+}
 
-export function Sidebar() {
+export function Sidebar({ navigation, title = 'SafeTNet', subtitle = 'Admin Panel' }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const pathname = usePathname();
 
@@ -64,8 +38,8 @@ export function Sidebar() {
           </span>
           {isExpanded && (
             <div className="flex flex-col">
-              <span className="text-xl font-bold text-primary">SafeTNet</span>
-              <span className="text-xs text-muted-foreground">Admin Panel</span>
+              <span className="text-xl font-bold text-primary">{title}</span>
+              <span className="text-xs text-muted-foreground">{subtitle}</span>
             </div>
           )}
         </button>

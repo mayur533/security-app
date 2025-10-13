@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useSearch } from '@/lib/contexts/search-context';
+import { CardLoading, TableLoading } from '@/components/ui/content-loading';
 
 interface Notification {
   id: string;
@@ -140,6 +141,14 @@ export function NotificationsContainer() {
   const [showPaginationMenu, setShowPaginationMenu] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Filter by type and unread
   let filteredNotifications = notifications;
@@ -189,6 +198,36 @@ export function NotificationsContainer() {
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
+        {/* Header Loading */}
+        <div className="flex items-center justify-between mb-6 animate-pulse">
+          <div>
+            <div className="h-6 w-40 bg-muted rounded mb-2"></div>
+            <div className="h-4 w-48 bg-muted/60 rounded"></div>
+          </div>
+        </div>
+
+        {/* Controls Loading */}
+        <div className="flex items-center justify-end gap-3 mb-6 animate-pulse">
+          <div className="h-10 w-32 bg-muted rounded-lg"></div>
+          <div className="h-10 w-24 bg-muted rounded-lg"></div>
+          <div className="h-10 w-24 bg-muted rounded-lg"></div>
+        </div>
+
+        {/* Table Loading */}
+        <TableLoading rows={itemsPerPage} columns={5} />
+
+        {/* Pagination Info Loading */}
+        <div className="mt-4 flex items-center justify-between animate-pulse">
+          <div className="h-4 w-48 bg-muted rounded"></div>
+          <div className="h-4 w-32 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">

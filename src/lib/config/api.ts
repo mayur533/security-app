@@ -74,6 +74,75 @@ export const API_ENDPOINTS = {
     KPIS: `${API_CONFIG.BASE_URL}/api/auth/dashboard-kpis/`,
   },
   
+  // Users
+  USERS: {
+    LIST: `${API_CONFIG.BASE_URL}/api/auth/admin/users/`,
+    DETAIL: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/users/${id}/`,
+    UPDATE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/users/${id}/`,
+    DELETE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/users/${id}/`,
+  },
+  
+  // Promocodes (Admin only)
+  PROMOCODES: {
+    LIST: `${API_CONFIG.BASE_URL}/api/auth/admin/promocode/`,
+    CREATE: `${API_CONFIG.BASE_URL}/api/auth/admin/promocode/`,
+    DETAIL: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/promocode/${id}/`,
+    UPDATE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/promocode/${id}/`,
+    DELETE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/promocode/${id}/`,
+  },
+  
+  // Security Officers (Sub-Admin)
+  OFFICERS: {
+    LIST: `${API_CONFIG.BASE_URL}/api/auth/admin/officers/`,
+    CREATE: `${API_CONFIG.BASE_URL}/api/auth/admin/officers/`,
+    DETAIL: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/officers/${id}/`,
+    UPDATE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/officers/${id}/`,
+    DELETE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/officers/${id}/`,
+  },
+  
+  // Incidents (Sub-Admin)
+  INCIDENTS: {
+    LIST: `${API_CONFIG.BASE_URL}/api/auth/admin/incidents/`,
+    CREATE: `${API_CONFIG.BASE_URL}/api/auth/admin/incidents/`,
+    DETAIL: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/incidents/${id}/`,
+    UPDATE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/incidents/${id}/`,
+    DELETE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/incidents/${id}/`,
+    RESOLVE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/incidents/${id}/resolve/`,
+  },
+  
+  // Notifications (Sub-Admin)
+  NOTIFICATIONS: {
+    LIST: `${API_CONFIG.BASE_URL}/api/auth/admin/notifications/`,
+    CREATE: `${API_CONFIG.BASE_URL}/api/auth/admin/notifications/`,
+    SEND: `${API_CONFIG.BASE_URL}/api/auth/subadmin/notifications/send/`,
+    DETAIL: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/notifications/${id}/`,
+    DELETE: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/notifications/${id}/`,
+  },
+  
+  // Discount Emails (Admin)
+  DISCOUNT_EMAILS: {
+    LIST: `${API_CONFIG.BASE_URL}/api/auth/admin/discount-emails/`,
+    CREATE: `${API_CONFIG.BASE_URL}/api/auth/admin/discount-emails/`,
+    DETAIL: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/discount-emails/${id}/`,
+  },
+  
+  // User Replies (Read-only)
+  USER_REPLIES: {
+    LIST: `${API_CONFIG.BASE_URL}/api/auth/admin/user-replies/`,
+    DETAIL: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/user-replies/${id}/`,
+  },
+  
+  // User Details (Read-only)
+  USER_DETAILS: {
+    LIST: `${API_CONFIG.BASE_URL}/api/auth/admin/user-details/`,
+    DETAIL: (id: number) => `${API_CONFIG.BASE_URL}/api/auth/admin/user-details/${id}/`,
+  },
+  
+  // Sub-Admin Dashboard
+  SUBADMIN: {
+    DASHBOARD_KPIS: `${API_CONFIG.BASE_URL}/api/auth/subadmin/dashboard-kpis/`,
+  },
+  
   // Documentation
   DOCS: {
     SCHEMA: `${API_CONFIG.BASE_URL}/api/schema/`,
@@ -97,7 +166,11 @@ export const DEFAULT_HEADERS = {
 
 // Export utility function to get auth headers
 export const getAuthHeaders = (token?: string): HeadersInit => {
-  const accessToken = token || (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) : null);
+  // Check both localStorage and sessionStorage for the token (supports "Remember Me" functionality)
+  let accessToken = token;
+  if (!accessToken && typeof window !== 'undefined') {
+    accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || undefined;
+  }
   
   return {
     ...DEFAULT_HEADERS,

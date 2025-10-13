@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useDashboardStore } from '@/lib/stores/dashboard';
+import { CardLoading } from '@/components/ui/content-loading';
 
 const stats = [
   {
@@ -18,12 +20,11 @@ const stats = [
     gradient: 'from-blue-500 to-cyan-500',
   },
   {
-    title: 'Active Users',
+    title: 'Total Users',
     value: 'activeUsers',
-    change: 'Real-time monitoring',
+    change: 'All registered users',
     icon: 'people',
     gradient: 'from-green-500 to-teal-500',
-    showIndicator: true,
   },
   {
     title: 'Security Alerts',
@@ -35,7 +36,15 @@ const stats = [
 ] as const;
 
 export function StatsCards() {
-  const { stats: dashboardStats } = useDashboardStore();
+  const { stats: dashboardStats, fetchStats, isLoading } = useDashboardStore();
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  if (isLoading) {
+    return <CardLoading count={4} />;
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
@@ -54,11 +63,11 @@ export function StatsCards() {
             </div>
             <div className="flex items-baseline mt-4">
               <p className="text-3xl font-bold">
-                {typeof value === 'number' ? value.toLocaleString() : value}
+                {typeof value === 'number' ? value.toLocaleString() : String(value || 0)}
               </p>
-              {'showIndicator' in stat && stat.showIndicator && (
+              {('showIndicator' in stat && stat.showIndicator) ? (
                 <div className="w-3 h-3 bg-green-300 rounded-full ml-2 animate-pulse" />
-              )}
+              ) : null}
             </div>
             <p className="text-sm opacity-80 mt-1">{stat.change}</p>
           </div>

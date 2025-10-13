@@ -1,10 +1,20 @@
 import { create } from 'zustand';
+import { API_ENDPOINTS, getAuthHeaders } from '@/lib/config/api';
 
 export interface DashboardStats {
   totalSubAdmins: number;
   activeGeofences: number;
   activeUsers: number;
   totalAlerts: number;
+}
+
+export interface DashboardKPIResponse {
+  active_geofences: number;
+  alerts_today: number;
+  active_sub_admins: number;
+  total_users: number;
+  critical_alerts: number;
+  system_health: string;
 }
 
 export interface Alert {
@@ -57,9 +67,36 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
   isLoading: false,
   fetchStats: async () => {
     set({ isLoading: true });
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    set({ isLoading: false });
+    try {
+      console.log('📊 Fetching dashboard KPIs...');
+      const response = await fetch(API_ENDPOINTS.DASHBOARD.KPIS, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      console.log('📊 KPI Response status:', response.status);
+
+      if (response.ok) {
+        const data: DashboardKPIResponse = await response.json();
+        console.log('📊 KPI Data received:', data);
+        
+        const newStats = {
+          totalSubAdmins: data.active_sub_admins || 0,
+          activeGeofences: data.active_geofences || 0,
+          activeUsers: data.total_users || 0,
+          totalAlerts: data.alerts_today || 0,
+        };
+        
+        console.log('📊 Setting stats:', newStats);
+        set({ stats: newStats });
+      } else {
+        console.error('📊 KPI fetch failed with status:', response.status);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+    } finally {
+      set({ isLoading: false });
+    }
   },
   fetchAlerts: async () => {
     set({ isLoading: true });

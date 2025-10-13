@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -17,16 +18,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useSearch } from '@/lib/contexts/search-context';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'Admin' | 'Sub-Admin' | 'Security' | 'Resident';
-  status: 'active' | 'inactive';
-  lastLogin: string;
-  assignedGeofence?: string;
-}
+import { usersService, type User } from '@/lib/services/users';
+import { CardLoading, TableLoading } from '@/components/ui/content-loading';
+import { convertRoleFromAPI, getRoleDisplayLabel } from '@/lib/utils/role-converter';
 
 const initialUsers: User[] = [
   {
@@ -124,17 +118,18 @@ interface UsersTableProps {
   onEditUser: (userId: string) => void;
 }
 
-type SortField = 'name' | 'email' | 'role' | 'lastLogin';
+type SortField = 'username' | 'email' | 'role' | 'date_joined';
 type SortOrder = 'asc' | 'desc';
-type FilterRole = 'all' | 'Admin' | 'Sub-Admin' | 'Security' | 'Resident';
+type FilterRole = 'all' | 'SUPER_ADMIN' | 'SUB_ADMIN' | 'USER';
 type FilterStatus = 'all' | 'active' | 'inactive';
 
 export function UsersTable({ onEditUser }: UsersTableProps) {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { searchQuery } = useSearch();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [sortField, setSortField] = useState<SortField>('lastLogin');
+  const [sortField, setSortField] = useState<SortField>('date_joined');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [filterRole, setFilterRole] = useState<FilterRole>('all');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
@@ -142,13 +137,40 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
+  // Fetch users on mount
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await usersService.getAll();
+      console.log('📊 Total users from API:', data.length);
+      
+      // Filter to show only regular USER role (exclude SUPER_ADMIN and SUB_ADMIN)
+      const regularUsers = data.filter(user => 
+        user.role !== 'SUPER_ADMIN' && 
+        user.role !== 'SUB_ADMIN' && 
+        user.role !== 'SUPER ADMIN' && 
+        user.role !== 'SUB ADMIN'
+      );
+      console.log('👤 Regular USER role count:', regularUsers.length);
+      setUsers(regularUsers);
+    } catch (error: any) {
+      console.error('Failed to fetch users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Filter by search
   let filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.assignedGeofence && user.assignedGeofence.toLowerCase().includes(searchQuery.toLowerCase()))
+      user.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Filter by role
@@ -179,33 +201,52 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter((user) => user.id !== id));
+      try {
+        await usersService.delete(id);
+        toast.success('User deleted successfully');
+        fetchUsers(); // Refresh list
+      } catch (error: any) {
+        console.error('Delete error:', error);
+        toast.error('Failed to delete user');
+      }
     }
   };
 
-  const handleToggleStatus = (id: string) => {
-    setUsers(
-      users.map((user) =>
-        user.id === id
-          ? { ...user, status: user.status === 'active' ? 'inactive' : 'active' }
-          : user
-      )
-    );
+  const handleToggleStatus = async (id: number) => {
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+
+    try {
+      await usersService.update(id, { is_active: !user.is_active });
+      toast.success('User status updated');
+      fetchUsers(); // Refresh list
+    } catch (error: any) {
+      console.error('Toggle status error:', error);
+      toast.error('Failed to update user status');
+    }
   };
 
-  const getRoleBadge = (role: User['role']) => {
-    const badges = {
-      Admin: 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300',
-      'Sub-Admin': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300',
-      Security: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
-      Resident: 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300',
-    };
+  const getRoleBadge = (role: string) => {
+    const normalizedRole = role.toUpperCase().replace(/_/g, ' ');
+    let badgeClass = '';
+    let displayRole = '';
+
+    if (normalizedRole === 'SUPER ADMIN' || normalizedRole === 'ADMIN') {
+      badgeClass = 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300';
+      displayRole = 'Admin';
+    } else if (normalizedRole === 'SUB ADMIN') {
+      badgeClass = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300';
+      displayRole = 'Sub-Admin';
+    } else {
+      badgeClass = 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300';
+      displayRole = 'User';
+    }
 
     return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${badges[role]}`}>
-        {role}
+      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${badgeClass}`}>
+        {displayRole}
       </span>
     );
   };
@@ -226,6 +267,31 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
       </span>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
+        {/* Stats Loading */}
+        <CardLoading count={4} className="mb-6" />
+
+        {/* Controls Loading */}
+        <div className="flex items-center justify-end gap-3 mb-6 animate-pulse">
+          <div className="h-10 w-32 bg-muted rounded-lg"></div>
+          <div className="h-10 w-24 bg-muted rounded-lg"></div>
+          <div className="h-10 w-24 bg-muted rounded-lg"></div>
+        </div>
+
+        {/* Table Loading */}
+        <TableLoading rows={itemsPerPage} columns={6} />
+
+        {/* Pagination Info Loading */}
+        <div className="mt-4 flex items-center justify-between animate-pulse">
+          <div className="h-4 w-48 bg-muted rounded"></div>
+          <div className="h-4 w-32 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
@@ -568,21 +634,21 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-border/50">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b bg-muted/30 hover:bg-muted/30">
-              <TableHead className="text-muted-foreground text-sm font-semibold">Name</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-semibold">Role</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-semibold">Email</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-semibold">Status</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-semibold">Last Login</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-semibold text-right">
-                Actions
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedUsers.length === 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-muted-foreground text-sm font-semibold">Name</TableHead>
+                <TableHead className="text-muted-foreground text-sm font-semibold">Role</TableHead>
+                <TableHead className="text-muted-foreground text-sm font-semibold">Email</TableHead>
+                <TableHead className="text-muted-foreground text-sm font-semibold">Status</TableHead>
+                <TableHead className="text-muted-foreground text-sm font-semibold">Last Login</TableHead>
+                <TableHead className="text-muted-foreground text-sm font-semibold text-right">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12">
                   <span className="material-icons text-6xl text-muted-foreground mb-2">
@@ -600,18 +666,18 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
                   <TableCell className="py-4 px-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-semibold shadow-lg">
-                        {user.name.charAt(0)}
+                        {user.username.charAt(0).toUpperCase()}
                       </div>
-                      <div className="font-medium text-sm">{user.name}</div>
+                      <div className="font-medium text-sm">{user.username}</div>
                     </div>
                   </TableCell>
                   <TableCell className="py-4 px-4">{getRoleBadge(user.role)}</TableCell>
                   <TableCell className="py-4 px-4">
                     <div className="text-sm text-muted-foreground">{user.email}</div>
                   </TableCell>
-                  <TableCell className="py-4 px-4">{getStatusBadge(user.status)}</TableCell>
+                  <TableCell className="py-4 px-4">{getStatusBadge(user.is_active ? 'active' : 'inactive')}</TableCell>
                   <TableCell className="py-4 px-4">
-                    <div className="text-sm">{user.lastLogin}</div>
+                    <div className="text-sm">{new Date(user.date_joined).toLocaleString()}</div>
                   </TableCell>
                   <TableCell className="py-4 px-4 text-right">
                     <DropdownMenu>
@@ -677,5 +743,6 @@ export function UsersTable({ onEditUser }: UsersTableProps) {
     </div>
   );
 }
+
 
 

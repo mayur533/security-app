@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -17,6 +18,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useSearch } from '@/lib/contexts/search-context';
+import { usersService, type User } from '@/lib/services/users';
+import { CardLoading, TableLoading } from '@/components/ui/content-loading';
 
 interface SubAdmin {
   id: string;
@@ -115,7 +118,8 @@ type SortOrder = 'asc' | 'desc';
 type FilterStatus = 'all' | 'active' | 'inactive';
 
 export function SubAdminsTable() {
-  const [subAdmins, setSubAdmins] = useState<SubAdmin[]>(initialSubAdmins);
+  const [subAdmins, setSubAdmins] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { searchQuery } = useSearch();
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -126,18 +130,41 @@ export function SubAdminsTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  // Fetch sub-admins on mount
+  useEffect(() => {
+    fetchSubAdmins();
+  }, []);
+
+  const fetchSubAdmins = async () => {
+    try {
+      setIsLoading(true);
+      const data = await usersService.getAll();
+      // Filter to show only SUB_ADMIN role users
+      const subAdminUsers = data.filter(user => 
+        user.role === 'SUB_ADMIN' || user.role === 'SUB ADMIN'
+      );
+      console.log('📊 Sub-Admins fetched:', subAdminUsers.length);
+      setSubAdmins(subAdminUsers);
+    } catch (error: any) {
+      console.error('Failed to fetch sub-admins:', error);
+      toast.error('Failed to load sub-admins');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Filter by search query
   let filteredSubAdmins = subAdmins.filter(
     (admin) =>
-      admin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      admin.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       admin.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      admin.assignedArea.toLowerCase().includes(searchQuery.toLowerCase())
+      (admin.full_name && admin.full_name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Filter by status
   if (filterStatus !== 'all') {
     filteredSubAdmins = filteredSubAdmins.filter(
-      (admin) => admin.status === filterStatus
+      (admin) => admin.is_active === (filterStatus === 'active')
     );
   }
 
@@ -210,6 +237,31 @@ export function SubAdminsTable() {
       </span>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
+        {/* Stats Loading */}
+        <CardLoading count={3} className="mb-6" />
+
+        {/* Controls Loading */}
+        <div className="flex items-center justify-end gap-3 mb-6 animate-pulse">
+          <div className="h-10 w-32 bg-muted rounded-lg"></div>
+          <div className="h-10 w-24 bg-muted rounded-lg"></div>
+          <div className="h-10 w-24 bg-muted rounded-lg"></div>
+        </div>
+
+        {/* Table Loading */}
+        <TableLoading rows={itemsPerPage} columns={5} />
+
+        {/* Pagination Info Loading */}
+        <div className="mt-4 flex items-center justify-between animate-pulse">
+          <div className="h-4 w-48 bg-muted rounded"></div>
+          <div className="h-4 w-32 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
@@ -550,22 +602,22 @@ export function SubAdminsTable() {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-border/50">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b bg-muted/30 hover:bg-muted/30">
-              <TableHead className="text-muted-foreground text-sm font-semibold">Name</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-semibold">Email</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-semibold">
-                Assigned Area
-              </TableHead>
-              <TableHead className="text-muted-foreground text-sm font-semibold">Status</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-semibold text-right">
-                Actions
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedSubAdmins.length === 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-muted-foreground text-sm font-semibold">Name</TableHead>
+                <TableHead className="text-muted-foreground text-sm font-semibold">Email</TableHead>
+                <TableHead className="text-muted-foreground text-sm font-semibold">
+                  Assigned Area
+                </TableHead>
+                <TableHead className="text-muted-foreground text-sm font-semibold">Status</TableHead>
+                <TableHead className="text-muted-foreground text-sm font-semibold text-right">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedSubAdmins.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-12">
                   <span className="material-icons text-6xl text-muted-foreground mb-2">
@@ -583,9 +635,12 @@ export function SubAdminsTable() {
                   <TableCell className="py-4 px-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                        {admin.name.charAt(0)}
+                        {(admin.full_name || admin.username).charAt(0).toUpperCase()}
                       </div>
-                      <div className="font-medium text-sm">{admin.name}</div>
+                      <div>
+                        <div className="font-medium text-sm">{admin.full_name || admin.username}</div>
+                        <div className="text-xs text-muted-foreground">@{admin.username}</div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="py-4 px-4">
@@ -593,11 +648,11 @@ export function SubAdminsTable() {
                   </TableCell>
                   <TableCell className="py-4 px-4">
                     <div className="flex items-center space-x-2">
-                      <span className="material-icons text-sm text-indigo-600">location_on</span>
-                      <span className="text-sm">{admin.assignedArea}</span>
+                      <span className="material-icons text-sm text-indigo-600">business</span>
+                      <span className="text-sm">{admin.organization?.name || 'Not Assigned'}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-4">{getStatusBadge(admin.status)}</TableCell>
+                  <TableCell className="py-4 px-4">{getStatusBadge(admin.is_active ? 'active' : 'inactive')}</TableCell>
                   <TableCell className="py-4 px-4 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
