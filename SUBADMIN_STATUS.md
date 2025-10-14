@@ -122,44 +122,65 @@
 
 ## ⚠️ **PARTIAL/NEEDS WORK**
 
-### 5. ⚠️ **Geofences** (Mock Data - 20% Complete)
+### 5. ⚠️ **Geofences** (Mock Data - 30% Complete)
 **Path:** `/sub-admin/geofences`
 
 **Current Status:**
 - ✅ Page layout exists
-- ✅ Map component (shared with Super Admin)
-- ✅ Sidebar component (shared with Super Admin)
-- ✅ Stats component
-- ⚠️ **USING MOCK DATA** - Not connected to API
-- ❌ Create Geofence functionality incomplete
-- ❌ Edit Geofence not implemented
-- ❌ Delete Geofence not implemented
+- ✅ Map component available (shared with Super Admin)
+- ✅ Sidebar component available (shared with Super Admin)
+- ✅ Stats component exists
+- ✅ Create Geofence Modal exists (but not functional)
+- ⚠️ **NOT PASSING DATA TO COMPONENTS** - Components expect `geofences` prop
+- ⚠️ **GeofencesStats uses hardcoded values** (28, 12, 89)
+- ❌ Not fetching data from API
+- ❌ Not filtering by organization
 
-**Missing Implementation:**
-1. ❌ **Real API Integration**
-   - Need to fetch Sub-Admin's geofences only (not all)
-   - Filter by organization
+**What's Missing:**
+
+1. ❌ **Fetch Geofences from API**
+   - Call `geofencesService.getAll()` on mount
+   - Filter by Sub-Admin's organization
+   - Pass data to Map and Sidebar components
    
-2. ❌ **Create Geofence**
+2. ❌ **Update GeofencesStats**
+   - Calculate stats from real geofences data
+   - Show: Total Geofences, Active, Inactive
+   - Remove hardcoded values
+   
+3. ❌ **Connect GeofencesMap**
+   - Pass `geofences` prop
+   - Pass `onSelectGeofence` callback
+   - Map will render real polygons
+   
+4. ❌ **Connect GeofencesSidebar**
+   - Pass `geofences` prop
+   - Pass `onRefresh` callback
+   - Sidebar will show real list
+   - View Details will work
+   - Edit button will work (Super Admin only)
+   
+5. ❌ **Implement Create Geofence** (if Sub-Admin has permission)
    - Drawing tools on map
-   - Form fields (name, description, polygon coordinates)
+   - Form: name, description, polygon coordinates
    - POST to `GEOFENCES.CREATE`
+   - Refresh list after creation
    
-3. ❌ **Edit Geofence**
+6. ❌ **Implement Edit Geofence** (if Sub-Admin has permission)
    - Edit modal with form
    - Update polygon on map
    - PUT to `GEOFENCES.UPDATE`
    
-4. ❌ **Delete Geofence**
+7. ❌ **Implement Delete Geofence** (if Sub-Admin has permission)
    - Confirmation dialog
    - DELETE to `GEOFENCES.DELETE`
 
-5. ❌ **View Details**
-   - Modal showing geofence details
-   - Organization info
-   - Created by, dates
+**Technical Issue:**
+- Sub-Admin Geofences page is NOT passing required props to child components
+- Components exist and work (used in Super Admin) but not connected in Sub-Admin
+- Simple fix: Fetch data and pass props
 
-**Required Work:** ~3-4 hours
+**Required Work:** ~2-3 hours (mostly wiring existing components)
 **Priority:** ⭐⭐ MEDIUM
 
 ---
@@ -173,7 +194,46 @@
 4. ✅ Incident Logs - View & resolve with real API
 
 ### ⚠️ **Incomplete (1/5 - 20%)**
-5. ⚠️ Geofences - Mock data, needs CRUD implementation
+5. ⚠️ Geofences - Mock data, needs data wiring
+
+---
+
+## 🔍 **MOCK DATA vs REAL API - DETAILED**
+
+### ✅ **USING REAL API DATA:**
+
+#### Dashboard:
+- ✅ KPI Cards (7 cards) - `SUBADMIN.DASHBOARD_KPIS`
+- ✅ Geofences Map markers - Real geofences from API
+- ⚠️ Daily Alerts Chart - Using mock chart data
+
+#### Security Officers:
+- ✅ Stats cards - Calculated from real officer data
+- ✅ Officers table - `OFFICERS.LIST`
+- ✅ All CRUD operations - Real API calls
+
+#### Notifications:
+- ✅ Notification form - Real send API
+- ✅ Notifications table - `NOTIFICATIONS.LIST`
+- ✅ Target geofence dropdown - Real geofences data
+- ✅ Delete operation - Real API
+
+#### Incident Logs:
+- ✅ Stats cards - Calculated from real incident data
+- ✅ Incidents table - `INCIDENTS.LIST`
+- ✅ Resolve action - Real API call
+
+### ⚠️ **USING MOCK/HARDCODED DATA:**
+
+#### Geofences Page:
+- ❌ **GeofencesStats component** - Hardcoded values (28, 12, 89)
+- ❌ **GeofencesMap** - Not receiving geofences prop (uses empty data)
+- ❌ **GeofencesSidebar** - Not receiving geofences prop (shows nothing)
+- ❌ Page not fetching from API at all
+
+#### Dashboard:
+- ⚠️ **Daily Alerts Chart** - Hardcoded chart data (not from API)
+- Note: Map uses real geofences but shares component with Super Admin
 
 ---
 
@@ -268,4 +328,79 @@ DELETE /api/auth/admin/geofences/{id}/           ❌ Not implemented
 - Geofences CRUD with API ⚠️
 
 **Overall Quality:** 🌟 Professional and nearly production-ready
+
+---
+
+## 🔧 **QUICK FIXES NEEDED**
+
+### Priority 1: Sub-Admin Geofences Page (30min - 1hr)
+**File:** `src/app/sub-admin/geofences/page.tsx`
+
+**Changes Needed:**
+```typescript
+// 1. Add state for geofences
+const [geofences, setGeofences] = useState<Geofence[]>([]);
+
+// 2. Fetch geofences on mount
+useEffect(() => {
+  fetchGeofences();
+}, []);
+
+const fetchGeofences = async () => {
+  const data = await geofencesService.getAll();
+  // TODO: Filter by Sub-Admin's organization if needed
+  setGeofences(data);
+};
+
+// 3. Pass props to components
+<GeofencesStats geofences={geofences} isLoading={isLoading} />
+<GeofencesMap 
+  geofences={geofences}
+  selectedGeofence={selectedGeofence} 
+  onSelectGeofence={setSelectedGeofence} 
+/>
+<GeofencesSidebar 
+  geofences={geofences}
+  selectedGeofence={selectedGeofence}
+  onSelectGeofence={setSelectedGeofence}
+  onRefresh={fetchGeofences}
+/>
+```
+
+**File:** `src/components/geofences/geofences-stats.tsx`
+
+**Changes Needed:**
+```typescript
+interface GeofencesStatsProps {
+  geofences: Geofence[];
+  isLoading?: boolean;
+}
+
+// Calculate from real data instead of hardcoded
+const stats = [
+  { title: 'Total Geofences', value: geofences.length, ... },
+  { title: 'Active Zones', value: geofences.filter(g => g.active).length, ... },
+  { title: 'Inactive Zones', value: geofences.filter(g => !g.active).length, ... },
+];
+```
+
+### Priority 2: Sub-Admin Dashboard Daily Alerts Chart (30min)
+**File:** `src/components/dashboard/daily-alerts-chart.tsx`
+
+**Change:** Connect to real alerts API instead of mock data
+
+---
+
+## 📝 **SUMMARY FOR DEVELOPER**
+
+**What's Actually Using Mock Data:**
+1. ❌ Sub-Admin Geofences page (entire page disconnected from API)
+2. ❌ GeofencesStats component (hardcoded: 28, 12, 89)
+3. ⚠️ Daily Alerts Chart in Dashboard (hardcoded chart data)
+
+**Everything Else:** ✅ Using real API data
+
+**Total Mock Data Instances:** 3
+**Total Features:** 5
+**Real API Integration:** 80%
 
