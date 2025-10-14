@@ -108,7 +108,7 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
       isFullscreen ? 'fixed inset-0 z-50' : ''
     }`} style={{ height: isFullscreen ? '100vh' : '600px' }}>
       {/* Map Controls */}
-      <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <Button
           onClick={toggleFullscreen}
           size="sm"
@@ -177,7 +177,7 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
       </MapContainer>
 
       {/* Legend - Clickable (Show All) */}
-      <div className="absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-border/50 z-[400] max-w-xs">
+      <div className="absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-border/50 z-10 max-w-xs">
         <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
           <span className="material-icons" style={{ fontSize: '14px' }}>layers</span>
           Active Geofences (Click to zoom)
