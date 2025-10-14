@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useSearch } from '@/lib/contexts/search-context';
-import { type Geofence } from '@/lib/services/geofences';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { type Geofence, geofencesService } from '@/lib/services/geofences';
 import {
   Dialog,
   DialogContent,
@@ -12,9 +13,30 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
 
 // Color palette for geofences
 const colors = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#f97316'];
+
+const zoneTypes = [
+  'Residential',
+  'Commercial',
+  'Industrial',
+  'Educational',
+  'Healthcare',
+  'Entertainment',
+  'Government',
+  'Mixed Use',
+];
 
 interface GeofencesSidebarProps {
   selectedGeofence: number | null;
@@ -25,9 +47,19 @@ interface GeofencesSidebarProps {
 
 export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences, onRefresh }: GeofencesSidebarProps) {
   const { searchQuery } = useSearch();
+  const { user } = useAuth();
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [viewDetailsGeofence, setViewDetailsGeofence] = useState<Geofence | null>(null);
   const [editGeofence, setEditGeofence] = useState<Geofence | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    zone_type: '',
+    is_active: true,
+  });
+  
+  const isSubAdmin = user?.role === 'SUB_ADMIN';
 
   // Assign colors to geofences
   const geofencesWithColors = geofences.map((geo, idx) => ({
@@ -54,6 +86,39 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
       month: 'long',
       day: 'numeric'
     });
+  };
+  
+  const handleEditClick = (geo: Geofence) => {
+    setEditGeofence(geo);
+    setFormData({
+      name: geo.name,
+      description: geo.description || '',
+      zone_type: geo.zone_type || '',
+      is_active: geo.active,
+    });
+  };
+  
+  const handleUpdateGeofence = async () => {
+    if (!editGeofence) return;
+    
+    try {
+      setIsSubmitting(true);
+      await geofencesService.update(editGeofence.id, {
+        name: formData.name,
+        description: formData.description || undefined,
+        zone_type: formData.zone_type || undefined,
+        is_active: formData.is_active,
+      });
+      
+      toast.success('Geofence updated successfully');
+      setEditGeofence(null);
+      onRefresh();
+    } catch (error: any) {
+      console.error('Update error:', error);
+      toast.error(error.message || 'Failed to update geofence');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -163,7 +228,7 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setEditGeofence(geo);
+                        handleEditClick(geo);
                       }}
                       className="flex items-center gap-1 hover:text-blue-600 transition-colors"
                     >
@@ -300,65 +365,167 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
         </Dialog>
       )}
 
-      {/* Edit Modal - Info Only for Super Admin */}
+      {/* Edit Modal - Different for Sub-Admin vs Super Admin */}
       {editGeofence && (
         <Dialog open={!!editGeofence} onOpenChange={() => setEditGeofence(null)}>
-          <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-xl border-border/50 p-6">
+          <DialogContent className="sm:max-w-[600px] bg-card/95 backdrop-blur-xl border-border/50 p-6 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold flex items-center bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
                 <span className="material-icons text-indigo-600 mr-2">
-                  info
+                  {isSubAdmin ? 'edit_location' : 'info'}
                 </span>
-                View Only Access
+                {isSubAdmin ? 'Edit Geofence' : 'View Only Access'}
               </DialogTitle>
               <DialogDescription>
-                Geofence editing is restricted to Sub-Admins
+                {isSubAdmin 
+                  ? 'Update geofence details and settings' 
+                  : 'Geofence editing is restricted to Sub-Admins'}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 mt-4">
-              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
-                <div className="flex gap-3">
-                  <span className="material-icons text-blue-600">lock</span>
-                  <div>
-                    <p className="text-sm font-medium mb-2">Super Admin Access Level</p>
-                    <p className="text-xs text-muted-foreground">
-                      As a Super Admin, you have <strong>view-only</strong> access to geofences across all organizations.
-                    </p>
+            {isSubAdmin ? (
+              // Edit form for Sub-Admin
+              <div className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Geofence Name <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Downtown Security Zone"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Optional description..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="zone_type">Zone Type</Label>
+                  <Select 
+                    value={formData.zone_type} 
+                    onValueChange={(value) => setFormData({ ...formData, zone_type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select zone type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {zoneTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="is_active" className="cursor-pointer">
+                    Active Geofence
+                  </Label>
+                </div>
+
+                <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <span className="material-icons text-indigo-600 text-xl">info</span>
+                    <div className="flex-1">
+                      <p className="text-sm text-indigo-900 dark:text-indigo-100 font-medium">
+                        Note
+                      </p>
+                      <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                        Polygon coordinates cannot be edited through this form. To modify the geofence boundaries, please delete and recreate the geofence.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-4 rounded-lg">
-                <div className="flex gap-3">
-                  <span className="material-icons text-indigo-600">edit_location</span>
-                  <div>
-                    <p className="text-sm font-medium mb-2">Who Can Edit Geofences?</p>
-                    <p className="text-xs text-muted-foreground">
-                      Only <strong>Sub-Admins</strong> can create, edit, and delete geofences within their assigned organizations.
-                    </p>
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditGeofence(null)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleUpdateGeofence}
+                    disabled={isSubmitting || !formData.name}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="material-icons animate-spin text-sm mr-2">refresh</span>
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-icons text-sm mr-2">save</span>
+                        Update Geofence
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              // Info-only for Super Admin
+              <div className="space-y-4 mt-4">
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+                  <div className="flex gap-3">
+                    <span className="material-icons text-blue-600">lock</span>
+                    <div>
+                      <p className="text-sm font-medium mb-2">Super Admin Access Level</p>
+                      <p className="text-xs text-muted-foreground">
+                        As a Super Admin, you have <strong>view-only</strong> access to geofences across all organizations.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Selected Geofence</Label>
-                <div className="bg-muted/30 p-3 rounded">
-                  <p className="font-medium">{editGeofence.name}</p>
-                  <p className="text-xs text-muted-foreground">{editGeofence.organization_name}</p>
+                <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-4 rounded-lg">
+                  <div className="flex gap-3">
+                    <span className="material-icons text-indigo-600">edit_location</span>
+                    <div>
+                      <p className="text-sm font-medium mb-2">Who Can Edit Geofences?</p>
+                      <p className="text-xs text-muted-foreground">
+                        Only <strong>Sub-Admins</strong> can create, edit, and delete geofences within their assigned organizations.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Selected Geofence</Label>
+                  <div className="bg-muted/30 p-3 rounded">
+                    <p className="font-medium">{editGeofence.name}</p>
+                    <p className="text-xs text-muted-foreground">{editGeofence.organization_name}</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditGeofence(null)}
+                  >
+                    <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
+                    Close
+                  </Button>
                 </div>
               </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t mt-4">
-              <Button
-                variant="outline"
-                onClick={() => setEditGeofence(null)}
-              >
-                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
-                Close
-              </Button>
-            </div>
+            )}
           </DialogContent>
         </Dialog>
       )}

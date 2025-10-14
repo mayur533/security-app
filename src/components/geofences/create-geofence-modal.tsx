@@ -18,10 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { geofencesService } from '@/lib/services/geofences';
+import { toast } from 'sonner';
 
 interface CreateGeofenceModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onRefresh?: () => void;
 }
 
 const zoneTypes = [
@@ -47,7 +50,7 @@ const colors = [
   { name: 'Pink', value: '#ec4899' },
 ];
 
-export function CreateGeofenceModal({ isOpen, onClose }: CreateGeofenceModalProps) {
+export function CreateGeofenceModal({ isOpen, onClose, onRefresh }: CreateGeofenceModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -104,10 +107,39 @@ export function CreateGeofenceModal({ isOpen, onClose }: CreateGeofenceModalProp
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      console.log('New geofence:', formData);
-      setIsSubmitting(false);
+    try {
+      const lat = parseFloat(formData.latitude);
+      const lng = parseFloat(formData.longitude);
+      const radiusMeters = parseInt(formData.radius);
+      
+      // Create a circular polygon from center point and radius
+      // Convert radius from meters to degrees (approximate)
+      const radiusDeg = radiusMeters / 111320; // 1 degree ≈ 111.32 km
+      const numPoints = 32; // Number of points to create the circle
+      
+      const coordinates: number[][][] = [[]];
+      for (let i = 0; i <= numPoints; i++) {
+        const angle = (i / numPoints) * 2 * Math.PI;
+        const pointLng = lng + radiusDeg * Math.cos(angle) / Math.cos(lat * Math.PI / 180);
+        const pointLat = lat + radiusDeg * Math.sin(angle);
+        coordinates[0].push([pointLng, pointLat]); // GeoJSON uses [lng, lat]
+      }
+      
+      const polygonJson = {
+        type: 'Polygon',
+        coordinates: coordinates
+      };
+
+      await geofencesService.create({
+        name: formData.name,
+        description: formData.description || undefined,
+        zone_type: formData.zoneType,
+        polygon_json: polygonJson,
+        center_point: [lat, lng], // Our API uses [lat, lng]
+        is_active: true,
+      });
+
+      toast.success('Geofence created successfully!');
       
       // Reset form
       setFormData({
@@ -122,8 +154,14 @@ export function CreateGeofenceModal({ isOpen, onClose }: CreateGeofenceModalProp
       
       onClose();
       
-      alert('Geofence created successfully!');
-    }, 1000);
+      // Refresh geofences list
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      console.error('Create geofence error:', error);
+      toast.error(error.message || 'Failed to create geofence');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {

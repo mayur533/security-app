@@ -114,6 +114,7 @@ export default function SubAdminGeofencesPage() {
       <CreateGeofenceModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onRefresh={fetchGeofences}
       />
     </div>
   );

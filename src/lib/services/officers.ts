@@ -14,11 +14,13 @@ export interface SecurityOfficer {
 }
 
 export interface OfficerCreateData {
+  officer_id: string;
   name: string;
   contact: string;
   email?: string;
+  password: string;
   assigned_geofence?: number;
-  organization: number;
+  organization?: number; // Optional - auto-assigned by backend for Sub-Admin
   is_active?: boolean;
 }
 

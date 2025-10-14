@@ -145,9 +145,43 @@ export default function SecurityOfficersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Officers creation requires organization - show message for now
-    toast.info('Officer management requires organization setup. Showing existing data only.');
-    setIsModalOpen(false);
+    if (!formData.name || !formData.contact) {
+      toast.error('Name and contact are required');
+      return;
+    }
+
+    try {
+      if (editingOfficer) {
+        // Update existing officer
+        await officersService.update(editingOfficer.id, {
+          name: formData.name,
+          contact: formData.contact,
+          email: formData.email || undefined,
+          assigned_geofence: formData.assigned_geofence ? parseInt(formData.assigned_geofence) : undefined,
+        });
+        toast.success('Officer updated successfully');
+      } else {
+        // Create new officer
+        const createData: any = {
+          officer_id: `OFF-${Date.now()}`, // Auto-generate officer ID
+          name: formData.name,
+          contact: formData.contact,
+          password: 'officer123', // Default password
+        };
+        
+        if (formData.email) createData.email = formData.email;
+        if (formData.assigned_geofence) createData.assigned_geofence = parseInt(formData.assigned_geofence);
+        
+        await officersService.create(createData);
+        toast.success('Officer created successfully');
+      }
+      
+      setIsModalOpen(false);
+      fetchOfficers(); // Refresh list
+    } catch (error: any) {
+      console.error('Submit error:', error);
+      toast.error(error.message || 'Failed to save officer');
+    }
   };
 
   const getStatusBadge = (is_active: boolean) => {
