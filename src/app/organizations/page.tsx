@@ -38,13 +38,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { organizationsService, Organization, OrganizationCreateData } from '@/lib/services/organizations';
 import { ContentLoading, CardLoading, TableLoading } from '@/components/ui/content-loading';
@@ -53,8 +46,15 @@ export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Dropdown menus
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showPerPageMenu, setShowPerPageMenu] = useState(false);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('all');
   
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -163,15 +163,38 @@ export default function OrganizationsPage() {
     });
   };
 
+  // Filter
+  let filteredOrgs = organizations.filter((org) => {
+    if (filterStatus === 'all') return true;
+    
+    const createdDate = new Date(org.created_at);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    if (filterStatus === 'recent') {
+      return createdDate >= weekAgo;
+    } else if (filterStatus === 'older') {
+      return createdDate < weekAgo;
+    }
+    
+    return true;
+  });
+
   // Sort
-  let sortedOrgs = [...organizations].sort((a, b) => {
+  let sortedOrgs = [...filteredOrgs].sort((a, b) => {
+    let comparison = 0;
+    
     switch (sortBy) {
       case 'name':
-        return a.name.localeCompare(b.name);
+        comparison = a.name.localeCompare(b.name);
+        break;
       case 'date':
       default:
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
     }
+    
+    return sortOrder === 'asc' ? comparison : -comparison;
   });
 
   // Pagination
@@ -278,34 +301,239 @@ export default function OrganizationsPage() {
           <>
             {/* Controls - Right Aligned */}
             <div className="flex items-center justify-end gap-3 mb-6">
-              {/* Sort Dropdown */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[160px]">
-                  <span className="material-icons text-sm mr-2">sort</span>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date">Date Created</SelectItem>
-                  <SelectItem value="name">Name</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Pagination Button */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowPerPageMenu(!showPerPageMenu);
+                    setShowSortMenu(false);
+                    setShowFilterMenu(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-lg hover:bg-muted transition-colors"
+                >
+                  <span className="material-icons text-lg">apps</span>
+                  <span className="text-sm font-medium">Pagination</span>
+                </button>
 
-              {/* Pagination Dropdown */}
-              <Select value={itemsPerPage.toString()} onValueChange={(value) => {
-                setItemsPerPage(Number(value));
-                setCurrentPage(1);
-              }}>
-                <SelectTrigger className="w-[130px]">
-                  <span className="material-icons text-sm mr-2">apps</span>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 / page</SelectItem>
-                  <SelectItem value="25">25 / page</SelectItem>
-                  <SelectItem value="50">50 / page</SelectItem>
-                  <SelectItem value="100">100 / page</SelectItem>
-                </SelectContent>
-              </Select>
+                {showPerPageMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-lg shadow-lg z-10">
+                    <div className="p-2">
+                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                        Items per page
+                      </div>
+                      {[10, 25, 50, 100].map((count) => (
+                        <button
+                          key={count}
+                          onClick={() => {
+                            setItemsPerPage(count);
+                            setCurrentPage(1);
+                            setShowPerPageMenu(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                            itemsPerPage === count
+                              ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          {count} items
+                        </button>
+                      ))}
+
+                      <div className="border-t border-border my-2"></div>
+
+                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                        Navigation
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (currentPage > 1) {
+                            setCurrentPage(currentPage - 1);
+                            setShowPerPageMenu(false);
+                          }
+                        }}
+                        disabled={currentPage === 1}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
+                          currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
+                        }`}
+                      >
+                        <span className="material-icons text-sm">chevron_left</span>
+                        Previous Page
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (currentPage < totalPages) {
+                            setCurrentPage(currentPage + 1);
+                            setShowPerPageMenu(false);
+                          }
+                        }}
+                        disabled={currentPage === totalPages}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
+                          currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
+                        }`}
+                      >
+                        <span className="material-icons text-sm">chevron_right</span>
+                        Next Page
+                      </button>
+
+                      <div className="border-t border-border my-2"></div>
+
+                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                        Go to page
+                      </div>
+                      {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => {
+                            setCurrentPage(page);
+                            setShowPerPageMenu(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                            currentPage === page
+                              ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          Page {page}
+                        </button>
+                      ))}
+                      {totalPages > 10 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">
+                          Showing first 10 pages of {totalPages}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Filter Button */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowFilterMenu(!showFilterMenu);
+                    setShowSortMenu(false);
+                    setShowPerPageMenu(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-lg hover:bg-muted transition-colors"
+                >
+                  <span className="material-icons text-lg">filter_list</span>
+                  <span className="text-sm font-medium">Filter</span>
+                  {filterStatus !== 'all' && (
+                    <span className="w-2 h-2 bg-indigo-600 rounded-full"></span>
+                  )}
+                </button>
+
+                {showFilterMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-10">
+                    <div className="p-2">
+                      {['all', 'recent', 'older'].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => {
+                            setFilterStatus(status);
+                            setCurrentPage(1);
+                            setShowFilterMenu(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                            filterStatus === status
+                              ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          {status === 'all' ? 'All Organizations' : status === 'recent' ? 'Recent (Last 7 Days)' : 'Older'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Sort Button */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowSortMenu(!showSortMenu);
+                    setShowPerPageMenu(false);
+                    setShowFilterMenu(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-lg hover:bg-muted transition-colors"
+                >
+                  <span className="material-icons text-lg">sort</span>
+                  <span className="text-sm font-medium">Sort</span>
+                </button>
+
+                {showSortMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-lg shadow-lg z-10">
+                    <div className="p-2">
+                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                        Sort By
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSortBy('name');
+                          setCurrentPage(1);
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                          sortBy === 'name'
+                            ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        Name
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('date');
+                          setCurrentPage(1);
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                          sortBy === 'date'
+                            ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        Date Created
+                      </button>
+
+                      <div className="border-t border-border my-2"></div>
+
+                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                        Order
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSortOrder('asc');
+                          setCurrentPage(1);
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                          sortOrder === 'asc'
+                            ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        Ascending (A-Z)
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortOrder('desc');
+                          setCurrentPage(1);
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                          sortOrder === 'desc'
+                            ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        Descending (Z-A)
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Table */}
@@ -381,10 +609,14 @@ export default function OrganizationsPage() {
 
             {/* Pagination Info */}
             <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-              <span>
-                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, sortedOrgs.length)} of{' '}
-                {sortedOrgs.length} organizations
-              </span>
+              <p>
+                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedOrgs.length)} of {sortedOrgs.length} organizations
+                {filterStatus !== 'all' && (
+                  <span className="ml-2 text-indigo-600 font-medium">
+                    (Filtered: {filterStatus === 'recent' ? 'Recent' : 'Older'})
+                  </span>
+                )}
+              </p>
               <span>Page {currentPage} of {totalPages || 1}</span>
             </div>
           </>
