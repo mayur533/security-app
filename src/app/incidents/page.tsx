@@ -760,7 +760,7 @@ export default function IncidentLogsPage() {
                       <div className="text-xs text-muted-foreground">{formatTime(incident.timestamp)}</div>
                     </TableCell>
                     <TableCell className="py-4 px-4">
-                      {getStatusBadge(incident.status)}
+                      {getStatusBadge(incident)}
                     </TableCell>
                     <TableCell className="py-4 px-4 text-right">
                       <DropdownMenu>
