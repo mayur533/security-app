@@ -607,17 +607,19 @@ export default function OrganizationsPage() {
               </Table>
             </div>
 
-            {/* Pagination Info */}
+            {/* Table Info */}
             <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
               <p>
                 Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedOrgs.length)} of {sortedOrgs.length} organizations
                 {filterStatus !== 'all' && (
                   <span className="ml-2 text-indigo-600 font-medium">
-                    (Filtered: {filterStatus === 'recent' ? 'Recent' : 'Older'})
+                    (Filtered: {filterStatus === 'recent' ? 'recent' : 'older'})
                   </span>
                 )}
               </p>
-              <span>Page {currentPage} of {totalPages || 1}</span>
+              <p>
+                Page {currentPage} of {totalPages || 1} • Sorted by: {sortBy === 'date' ? 'Date Created' : 'Name'} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
+              </p>
             </div>
           </>
         </div>
