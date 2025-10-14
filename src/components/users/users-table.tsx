@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Table,
@@ -143,6 +144,7 @@ type FilterRole = 'all' | 'SUPER_ADMIN' | 'SUB_ADMIN' | 'USER';
 type FilterStatus = 'all' | 'active' | 'inactive';
 
 export function UsersTable({ onEditUser, refreshTrigger = 0 }: UsersTableProps) {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { searchQuery } = useSearch();
@@ -863,24 +865,47 @@ export function UsersTable({ onEditUser, refreshTrigger = 0 }: UsersTableProps) 
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-3 border-t mt-3">
-              <Button
-                variant="outline"
-                onClick={() => setViewDetailsUser(null)}
-              >
-                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
-                Close
-              </Button>
-              <Button
-                onClick={() => {
-                  setViewDetailsUser(null);
-                  onEditUser(viewDetailsUser.id);
-                }}
-                className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
-              >
-                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>edit</span>
-                Edit User
-              </Button>
+            <div className="space-y-3 pt-3 border-t mt-3">
+              {/* Additional Info Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/users/${viewDetailsUser.id}/replies`)}
+                  className="flex-1"
+                >
+                  <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>forum</span>
+                  User Replies
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/users/${viewDetailsUser.id}/details`)}
+                  className="flex-1"
+                >
+                  <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>info</span>
+                  User Details
+                </Button>
+              </div>
+              
+              {/* Main Action Buttons */}
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setViewDetailsUser(null)}
+                >
+                  <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    setViewDetailsUser(null);
+                    onEditUser(viewDetailsUser.id);
+                  }}
+                  className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+                >
+                  <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>edit</span>
+                  Edit User
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
