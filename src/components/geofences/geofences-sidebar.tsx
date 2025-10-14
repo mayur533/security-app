@@ -27,6 +27,7 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
   const { searchQuery } = useSearch();
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [viewDetailsGeofence, setViewDetailsGeofence] = useState<Geofence | null>(null);
+  const [editGeofence, setEditGeofence] = useState<Geofence | null>(null);
 
   // Assign colors to geofences
   const geofencesWithColors = geofences.map((geo, idx) => ({
@@ -148,17 +149,29 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setViewDetailsGeofence(geo);
-                    }}
-                    className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
-                  >
-                    <span className="material-icons" style={{ fontSize: '14px' }}>visibility</span>
-                    Details
-                  </button>
-                  <span className="text-xs">{formatDate(geo.created_at)}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewDetailsGeofence(geo);
+                      }}
+                      className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                    >
+                      <span className="material-icons" style={{ fontSize: '14px' }}>visibility</span>
+                      View
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditGeofence(geo);
+                      }}
+                      className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                    >
+                      <span className="material-icons" style={{ fontSize: '14px' }}>edit</span>
+                      Edit
+                    </button>
+                  </div>
+                  <span className="text-xs">{formatDate(geo.created_at).split(',')[0]}</span>
                 </div>
               </button>
             ))
@@ -240,13 +253,29 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
                 )}
               </div>
 
-              {/* Polygon Data */}
+              {/* Polygon Coordinates */}
               <div className="space-y-1 pt-2 border-t">
                 <Label className="text-sm font-medium text-muted-foreground">Polygon Coordinates</Label>
-                <div className="mt-2 bg-muted/30 p-3 rounded-lg max-h-48 overflow-auto">
-                  <pre className="text-xs">
-                    {JSON.stringify(viewDetailsGeofence.polygon_json, null, 2)}
-                  </pre>
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  {(() => {
+                    try {
+                      const polygonJson = viewDetailsGeofence.polygon_json as Record<string, unknown>;
+                      if (polygonJson.type === 'Polygon' && Array.isArray(polygonJson.coordinates)) {
+                        const coords = polygonJson.coordinates[0] as number[][];
+                        return coords.slice(0, 4).map((coord, idx) => (
+                          <div key={idx} className="bg-muted/30 p-2 rounded">
+                            <Label className="text-xs text-muted-foreground">Point {idx + 1}</Label>
+                            <p className="text-xs font-mono mt-1">
+                              Lat: {coord[0].toFixed(6)}<br/>
+                              Lng: {coord[1].toFixed(6)}
+                            </p>
+                          </div>
+                        ));
+                      }
+                    } catch (e) {
+                      return <p className="text-xs text-red-500">Invalid polygon data</p>;
+                    }
+                  })()}
                 </div>
               </div>
 
@@ -262,6 +291,69 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
               <Button
                 variant="outline"
                 onClick={() => setViewDetailsGeofence(null)}
+              >
+                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Modal - Info Only for Super Admin */}
+      {editGeofence && (
+        <Dialog open={!!editGeofence} onOpenChange={() => setEditGeofence(null)}>
+          <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-xl border-border/50 p-6">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="material-icons text-indigo-600 mr-2">
+                  info
+                </span>
+                View Only Access
+              </DialogTitle>
+              <DialogDescription>
+                Geofence editing is restricted to Sub-Admins
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-4">
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+                <div className="flex gap-3">
+                  <span className="material-icons text-blue-600">lock</span>
+                  <div>
+                    <p className="text-sm font-medium mb-2">Super Admin Access Level</p>
+                    <p className="text-xs text-muted-foreground">
+                      As a Super Admin, you have <strong>view-only</strong> access to geofences across all organizations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-4 rounded-lg">
+                <div className="flex gap-3">
+                  <span className="material-icons text-indigo-600">edit_location</span>
+                  <div>
+                    <p className="text-sm font-medium mb-2">Who Can Edit Geofences?</p>
+                    <p className="text-xs text-muted-foreground">
+                      Only <strong>Sub-Admins</strong> can create, edit, and delete geofences within their assigned organizations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Selected Geofence</Label>
+                <div className="bg-muted/30 p-3 rounded">
+                  <p className="font-medium">{editGeofence.name}</p>
+                  <p className="text-xs text-muted-foreground">{editGeofence.organization_name}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setEditGeofence(null)}
               >
                 <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
                 Close

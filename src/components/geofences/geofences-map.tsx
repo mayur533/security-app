@@ -26,6 +26,12 @@ const Popup = dynamic(
   { ssr: false }
 );
 
+// Import MapController as a separate component
+const MapController = dynamic(
+  () => import('@/components/geofences/map-controller').then((mod) => mod.MapController),
+  { ssr: false }
+);
+
 // Color palette for geofences
 const colors = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -53,6 +59,7 @@ const extractCoordinates = (polygonJson: Record<string, unknown>): [number, numb
 export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: GeofencesMapProps) {
   const [isClient, setIsClient] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -69,8 +76,15 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
     coordinates: extractCoordinates(geo.polygon_json as Record<string, unknown>)
   }));
 
-  // Calculate map center (average of all center points)
-  const mapCenter: [number, number] = geofences.length > 0 && geofences[0].center_point
+  const zoomToGeofence = (geofence: typeof geofencesWithColors[0]) => {
+    if (geofence.center_point) {
+      setMapCenter([geofence.center_point[0], geofence.center_point[1]]);
+      onSelectGeofence(geofence.id);
+    }
+  };
+
+  // Calculate default map center (average of all center points)
+  const defaultCenter: [number, number] = geofences.length > 0 && geofences[0].center_point
     ? [geofences[0].center_point[0], geofences[0].center_point[1]]
     : [40.7128, -74.0060]; // Default to NYC
 
@@ -109,7 +123,7 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
 
       {/* Map */}
       <MapContainer
-        center={mapCenter}
+        center={defaultCenter}
         zoom={13}
         style={{ height: '100%', width: '100%' }}
         className="z-0"
@@ -118,6 +132,9 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
           url={tileUrl}
           attribution={attribution}
         />
+        
+        {/* Map Controller for zoom/pan */}
+        {mapCenter && <MapController center={mapCenter} zoom={15} />}
 
         {/* Render all geofence polygons */}
         {geofencesWithColors.map((geofence) => {
@@ -159,24 +176,35 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
         })}
       </MapContainer>
 
-      {/* Legend */}
+      {/* Legend - Clickable */}
       <div className="absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-border/50 z-[1000] max-w-xs">
         <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
           <span className="material-icons" style={{ fontSize: '14px' }}>layers</span>
-          Active Geofences
+          Active Geofences (Click to zoom)
         </h4>
         <div className="space-y-1 max-h-32 overflow-y-auto">
           {geofencesWithColors.filter(g => g.active).slice(0, 5).map((geo) => (
-            <div key={geo.id} className="flex items-center gap-2 text-xs">
+            <button
+              key={geo.id}
+              onClick={() => zoomToGeofence(geo)}
+              className={`w-full flex items-center gap-2 text-xs p-1.5 rounded hover:bg-muted/50 transition-colors ${
+                selectedGeofence === geo.id ? 'bg-muted' : ''
+              }`}
+            >
               <div
-                className="w-3 h-3 rounded-full"
+                className="w-3 h-3 rounded-full flex-shrink-0"
                 style={{ backgroundColor: geo.color }}
               />
-              <span className="truncate">{geo.name}</span>
-            </div>
+              <span className="truncate text-left">{geo.name}</span>
+              {selectedGeofence === geo.id && (
+                <span className="material-icons text-indigo-600 ml-auto" style={{ fontSize: '14px' }}>
+                  gps_fixed
+                </span>
+              )}
+            </button>
           ))}
           {geofencesWithColors.filter(g => g.active).length > 5 && (
-            <p className="text-xs text-muted-foreground italic">
+            <p className="text-xs text-muted-foreground italic px-1.5">
               +{geofencesWithColors.filter(g => g.active).length - 5} more
             </p>
           )}
