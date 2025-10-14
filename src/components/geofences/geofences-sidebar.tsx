@@ -120,6 +120,35 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
       setIsSubmitting(false);
     }
   };
+  
+  const handleDeleteGeofence = async (geo: Geofence) => {
+    // Only Sub-Admin can delete
+    if (!isSubAdmin) {
+      toast.error('Only Sub-Admins can delete geofences');
+      return;
+    }
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${geo.name}"?\n\nThis action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await geofencesService.delete(geo.id);
+      toast.success('Geofence deleted successfully');
+      
+      // Clear selection if deleted geofence was selected
+      if (selectedGeofence === geo.id) {
+        onSelectGeofence(null);
+      }
+      
+      onRefresh();
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast.error(error.message || 'Failed to delete geofence');
+    }
+  };
 
   return (
     <>
@@ -235,6 +264,18 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
                       <span className="material-icons" style={{ fontSize: '14px' }}>edit</span>
                       Edit
                     </button>
+                    {isSubAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteGeofence(geo);
+                        }}
+                        className="flex items-center gap-1 hover:text-red-600 transition-colors"
+                      >
+                        <span className="material-icons" style={{ fontSize: '14px' }}>delete</span>
+                        Delete
+                      </button>
+                    )}
                   </div>
                   <span className="text-xs">{formatDate(geo.created_at).split(',')[0]}</span>
                 </div>
