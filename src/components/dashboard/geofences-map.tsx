@@ -111,8 +111,10 @@ export function GeofencesMap() {
   }
 
   return (
-    <div className={`lg:col-span-2 bg-card pt-2 pb-6 px-6 rounded-lg shadow-md border overflow-hidden ${
-      isFullscreen ? 'fixed inset-0 z-50 rounded-none p-0' : ''
+    <div className={`lg:col-span-2 ${
+      isFullscreen 
+        ? 'fixed inset-0 z-[999] bg-card' 
+        : 'bg-card pt-2 pb-6 px-6 rounded-lg shadow-md border overflow-hidden relative'
     }`}>
       {/* Map Header - Compact */}
       {!isFullscreen && (
@@ -121,27 +123,27 @@ export function GeofencesMap() {
         </div>
       )}
       
-      {/* Fullscreen Toggle - Always Top Right */}
-      <button
-        onClick={() => setIsFullscreen(!isFullscreen)}
-        className={`transition-colors flex items-center justify-center ${
-          isFullscreen 
-            ? 'absolute top-4 right-4 z-[1000] p-2 bg-card/80 backdrop-blur-sm hover:bg-card rounded-lg shadow-lg border border-border/50'
-            : 'absolute top-2 right-2 z-10 p-1.5 hover:bg-muted rounded'
-        }`}
-        title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-      >
-        <span className="material-icons text-base text-muted-foreground hover:text-foreground">
-          {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
-        </span>
-      </button>
-      
       <div 
         className={`relative overflow-hidden ${
           isFullscreen ? 'h-screen' : 'h-96 rounded-md'
         }`}
         style={isFullscreen ? { height: '100vh' } : {}}
       >
+        {/* Fullscreen Button - Inside Map Container */}
+        <button
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className={`absolute z-[1000] transition-colors flex items-center justify-center ${
+            isFullscreen 
+              ? 'top-4 right-4 p-2 bg-card/80 backdrop-blur-sm hover:bg-card rounded-lg shadow-lg border border-border/50'
+              : 'top-2 right-2 p-1.5 hover:bg-muted/80 rounded bg-card/80 backdrop-blur-sm shadow-md'
+          }`}
+          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+        >
+          <span className="material-icons text-base text-muted-foreground hover:text-foreground">
+            {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+          </span>
+        </button>
+
         {loading ? (
           <div className="h-full flex items-center justify-center bg-muted/20">
             <div className="text-muted-foreground animate-pulse">Loading geofences...</div>

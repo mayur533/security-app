@@ -104,11 +104,12 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
   const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   return (
-    <div className={`relative ${
-      isFullscreen 
-        ? 'fixed inset-0 z-[999] bg-card' 
-        : 'bg-card rounded-lg shadow-md border overflow-hidden'
-    }`} style={{ height: isFullscreen ? '100vh' : '600px' }}>
+    <>
+      <div className={`relative ${
+        isFullscreen 
+          ? 'fixed inset-0 z-[999] bg-card' 
+          : 'bg-card rounded-lg shadow-md border overflow-hidden'
+      }`} style={{ height: isFullscreen ? '100vh' : '600px' }}>
       {/* Map */}
       <MapContainer
         center={defaultCenter}
@@ -212,5 +213,6 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
         </div>
       </div>
     </div>
+    </>
   );
 }
