@@ -53,23 +53,23 @@ export function StatsCards() {
         return (
           <div
             key={stat.title}
-            className={`bg-gradient-to-br ${stat.gradient} p-6 rounded-lg shadow-lg text-white`}
+            className={`bg-gradient-to-br ${stat.gradient} p-4 rounded-lg shadow-lg text-white`}
           >
             <div className="flex justify-between items-start">
-              <h3 className="font-semibold">{stat.title}</h3>
-              <span className="material-icons-outlined bg-white/20 p-2 rounded-lg">
+              <h3 className="font-semibold text-sm">{stat.title}</h3>
+              <span className="material-icons-outlined bg-white/20 p-1.5 rounded-lg text-xl">
                 {stat.icon}
               </span>
             </div>
-            <div className="flex items-baseline mt-4">
-              <p className="text-3xl font-bold">
+            <div className="flex items-baseline mt-2">
+              <p className="text-2xl font-bold">
                 {typeof value === 'number' ? value.toLocaleString() : String(value || 0)}
               </p>
               {('showIndicator' in stat && stat.showIndicator) ? (
                 <div className="w-3 h-3 bg-green-300 rounded-full ml-2 animate-pulse" />
               ) : null}
             </div>
-            <p className="text-sm opacity-80 mt-1">{stat.change}</p>
+            <p className="text-xs opacity-80 mt-1">{stat.change}</p>
           </div>
         );
       })}
