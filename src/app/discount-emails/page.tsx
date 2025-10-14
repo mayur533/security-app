@@ -137,7 +137,7 @@ export default function DiscountEmailsPage() {
   let filteredEmails = emails.filter(
     (email) =>
       email.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (email.discount_code_details?.code.toLowerCase().includes(searchQuery.toLowerCase()))
+      (email.discount_code_code?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   if (filterStatus !== 'all') {
@@ -456,12 +456,12 @@ export default function DiscountEmailsPage() {
                     </TableCell>
                     <TableCell className="py-4 px-4">
                       <Badge variant="outline" className="font-mono text-xs">
-                        {email.discount_code_details?.code || `Code #${email.discount_code}`}
+                        {email.discount_code_code || `Code #${email.discount_code}`}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-4 px-4">
                       <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
-                        {email.discount_code_details?.discount_percentage}% OFF
+                        {email.discount_code_discount}% OFF
                       </Badge>
                     </TableCell>
                     <TableCell className="py-4 px-4">
@@ -671,7 +671,7 @@ export default function DiscountEmailsPage() {
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-muted-foreground">Discount Code</Label>
                   <Badge variant="outline" className="font-mono">
-                    {viewDetailsEmail.discount_code_details?.code || `Code #${viewDetailsEmail.discount_code}`}
+                    {viewDetailsEmail.discount_code_code || `Code #${viewDetailsEmail.discount_code}`}
                   </Badge>
                 </div>
 
@@ -679,7 +679,7 @@ export default function DiscountEmailsPage() {
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-muted-foreground">Discount</Label>
                   <Badge className="bg-green-100 text-green-800 border-green-200">
-                    {viewDetailsEmail.discount_code_details?.discount_percentage}% OFF
+                    {viewDetailsEmail.discount_code_discount}% OFF
                   </Badge>
                 </div>
 

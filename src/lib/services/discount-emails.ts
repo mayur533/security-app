@@ -4,10 +4,8 @@ export interface DiscountEmail {
   id: number;
   email: string;
   discount_code: number;
-  discount_code_details?: {
-    code: string;
-    discount_percentage: string;
-  };
+  discount_code_code?: string;
+  discount_code_discount?: string;
   status: 'PENDING' | 'SENT';
   created_at: string;
 }
