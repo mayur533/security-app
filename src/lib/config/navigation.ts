@@ -12,6 +12,11 @@ export const mainAdminNavigation: NavigationItem[] = [
     icon: 'dashboard',
   },
   {
+    name: 'Organizations',
+    href: '/organizations',
+    icon: 'business',
+  },
+  {
     name: 'Sub-Admins',
     href: '/sub-admins',
     icon: 'supervisor_account',
