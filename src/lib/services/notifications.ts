@@ -109,6 +109,23 @@ export const notificationsService = {
   },
 
   /**
+   * Mark notification as sent/read
+   */
+  async markAsRead(id: number): Promise<Notification> {
+    const response = await fetch(API_ENDPOINTS.NOTIFICATIONS.DETAIL(id), {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ is_sent: true }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to mark notification as read');
+    }
+
+    return await response.json();
+  },
+
+  /**
    * Delete a notification
    */
   async delete(id: number): Promise<void> {

@@ -135,6 +135,32 @@ export function NotificationDropdown({ onViewAll, onClose }: NotificationDropdow
     setOpen(false);
   };
 
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await notificationsService.markAsRead(Number(id));
+      // Update local state
+      setNotifications(notifications.map(n => 
+        n.id === id ? { ...n, unread: false } : n
+      ));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      // Mark all unread notifications as read
+      const unreadNotifs = notifications.filter(n => n.unread);
+      await Promise.all(
+        unreadNotifs.map(n => notificationsService.markAsRead(Number(n.id)))
+      );
+      // Update local state
+      setNotifications(notifications.map(n => ({ ...n, unread: false })));
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
@@ -148,9 +174,21 @@ export function NotificationDropdown({ onViewAll, onClose }: NotificationDropdow
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        <div className="p-4 border-b">
-          <h3 className="font-semibold text-sm">Notifications</h3>
-          <p className="text-xs text-muted-foreground">{unreadCount} unread</p>
+        <div className="p-4 border-b flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-sm">Notifications</h3>
+            <p className="text-xs text-muted-foreground">{unreadCount} unread</p>
+          </div>
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMarkAllAsRead}
+              className="text-xs h-7"
+            >
+              Mark all read
+            </Button>
+          )}
         </div>
         
         <div className="max-h-64 overflow-y-auto">
@@ -167,7 +205,12 @@ export function NotificationDropdown({ onViewAll, onClose }: NotificationDropdow
             notifications.slice(0, 4).map((notification) => (
               <div
                 key={notification.id}
-                className={`p-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
+                onClick={() => {
+                  if (notification.unread) {
+                    handleMarkAsRead(notification.id);
+                  }
+                }}
+                className={`p-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 cursor-pointer ${
                   notification.unread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                 }`}
               >
