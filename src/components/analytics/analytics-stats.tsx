@@ -1,35 +1,97 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { API_ENDPOINTS, getAuthHeaders } from '@/lib/config/api';
+import { toast } from 'sonner';
+
+interface DashboardKPIs {
+  active_geofences: number;
+  alerts_today: number;
+  active_sub_admins: number;
+  total_users: number;
+  critical_alerts: number;
+  system_health: string;
+}
+
 export function AnalyticsStats() {
+  const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchKPIs();
+  }, []);
+
+  const fetchKPIs = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(API_ENDPOINTS.DASHBOARD.KPIS, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch KPIs');
+      }
+
+      const data = await response.json();
+      setKpis(data);
+    } catch (error) {
+      console.error('Error fetching KPIs:', error);
+      toast.error('Failed to fetch analytics stats');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="bg-gradient-to-br from-gray-400 to-gray-500 p-6 rounded-xl shadow-lg animate-pulse h-32"></div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!kpis) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="col-span-4 text-center py-8 text-muted-foreground">
+          Failed to load analytics stats
+        </div>
+      </div>
+    );
+  }
+
   const stats = [
     {
-      title: 'Total Alerts (30d)',
-      value: '1,247',
-      change: '+12.5%',
-      trend: 'up',
+      title: 'Alerts Today',
+      value: kpis.alerts_today.toString(),
+      change: kpis.critical_alerts > 0 ? `${kpis.critical_alerts} critical` : 'All resolved',
+      trend: kpis.critical_alerts > 0 ? 'up' : 'down',
       icon: 'notifications_active',
       gradient: 'from-indigo-500 to-purple-600',
     },
     {
-      title: 'Response Time',
-      value: '2.4 min',
-      change: '-18% faster',
-      trend: 'down',
-      icon: 'timer',
+      title: 'Active Geofences',
+      value: kpis.active_geofences.toString(),
+      change: kpis.system_health,
+      trend: 'up',
+      icon: 'public',
       gradient: 'from-green-500 to-teal-600',
     },
     {
-      title: 'Resolution Rate',
-      value: '94.2%',
-      change: '+2.8%',
+      title: 'Active Sub-Admins',
+      value: kpis.active_sub_admins.toString(),
+      change: 'Managing zones',
       trend: 'up',
-      icon: 'check_circle',
+      icon: 'supervisor_account',
       gradient: 'from-blue-500 to-cyan-600',
     },
     {
-      title: 'Active Users',
-      value: '12,458',
-      change: '+5.3%',
+      title: 'Total Users',
+      value: kpis.total_users.toLocaleString(),
+      change: 'System-wide',
       trend: 'up',
       icon: 'people',
       gradient: 'from-orange-500 to-red-600',
