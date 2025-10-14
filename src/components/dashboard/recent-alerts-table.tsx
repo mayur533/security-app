@@ -134,9 +134,13 @@ export function RecentAlertsTable() {
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
+                  className="h-32 text-center text-muted-foreground"
                 >
-                  No alerts found.
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="material-icons text-5xl">notifications_off</span>
+                    <p className="text-sm">No recent alerts</p>
+                    <p className="text-xs">Security alerts will appear here</p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
