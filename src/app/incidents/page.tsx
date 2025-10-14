@@ -16,7 +16,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { CardLoading, TableLoading } from '@/components/ui/content-loading';
 import { incidentsService, type Incident as BackendIncident } from '@/lib/services/incidents';
 
@@ -714,8 +733,8 @@ export default function IncidentLogsPage() {
               <TableHeader>
                 <TableRow className="border-b bg-muted/30 hover:bg-muted/30">
                   <TableHead className="text-muted-foreground text-sm font-semibold">Incident ID</TableHead>
-                  <TableHead className="text-muted-foreground text-sm font-semibold">Type</TableHead>
-                  <TableHead className="text-muted-foreground text-sm font-semibold">Reported By</TableHead>
+                  <TableHead className="text-muted-foreground text-sm font-semibold">Title & Type</TableHead>
+                  <TableHead className="text-muted-foreground text-sm font-semibold">Severity</TableHead>
                   <TableHead className="text-muted-foreground text-sm font-semibold">Geofence</TableHead>
                   <TableHead className="text-muted-foreground text-sm font-semibold">Date</TableHead>
                   <TableHead className="text-muted-foreground text-sm font-semibold">Status</TableHead>
@@ -736,28 +755,34 @@ export default function IncidentLogsPage() {
                 paginatedIncidents.map((incident) => (
                   <TableRow key={incident.id} className="border-b hover:bg-muted/20 transition-colors">
                     <TableCell className="py-4 px-4">
-                      <span className="text-sm font-mono">{incident.incidentId}</span>
+                      <span className="text-sm font-mono">INC-{incident.id}</span>
                     </TableCell>
                     <TableCell className="py-4 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(incident.type)}`}>
-                        <span className="material-icons-outlined mr-1" style={{ fontSize: '14px' }}>
-                          {getTypeIcon(incident.type)}
-                        </span>
-                        {incident.type}
-                      </span>
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">{incident.title}</div>
+                        <Badge variant="outline" className="text-xs">
+                          {incident.incident_type.replace(/_/g, ' ')}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell className="py-4 px-4">
-                      <div className="text-sm">{incident.reportedBy}</div>
+                      <Badge variant="outline" className={`text-xs ${
+                        incident.severity === 'HIGH' ? 'border-red-500 text-red-700' :
+                        incident.severity === 'MEDIUM' ? 'border-orange-500 text-orange-700' :
+                        'border-green-500 text-green-700'
+                      }`}>
+                        {incident.severity}
+                      </Badge>
                     </TableCell>
                     <TableCell className="py-4 px-4">
                       <div className="flex items-center space-x-2">
                         <span className="material-icons text-sm text-indigo-600">location_on</span>
-                        <span className="text-sm">{incident.geofence}</span>
+                        <span className="text-sm">{incident.geofence_name || `Geofence #${incident.geofence}`}</span>
                       </div>
                     </TableCell>
                     <TableCell className="py-4 px-4">
-                      <div className="text-sm">{formatDate(incident.timestamp)}</div>
-                      <div className="text-xs text-muted-foreground">{formatTime(incident.timestamp)}</div>
+                      <div className="text-sm">{formatDate(incident.created_at)}</div>
+                      <div className="text-xs text-muted-foreground">{formatTime(incident.created_at)}</div>
                     </TableCell>
                     <TableCell className="py-4 px-4">
                       {getStatusBadge(incident)}

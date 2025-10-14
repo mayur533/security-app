@@ -3,15 +3,18 @@ import { API_ENDPOINTS, getAuthHeaders } from '@/lib/config/api';
 export interface Incident {
   id: number;
   geofence: number;
+  geofence_name?: string;
   officer?: number;
+  officer_name?: string;
   incident_type: string;
   severity: string;
   title: string;
   details: string;
   location: object;
   is_resolved: boolean;
-  resolved_at?: string;
+  resolved_at?: string | null;
   resolved_by?: number;
+  resolved_by_username?: string;
   created_at: string;
   updated_at: string;
 }
