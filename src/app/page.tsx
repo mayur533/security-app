@@ -6,7 +6,6 @@ import { GeofencesMap } from '@/components/dashboard/geofences-map';
 import { DailyAlertsChart } from '@/components/dashboard/daily-alerts-chart';
 import { UserActivityChart } from '@/components/dashboard/user-activity-chart';
 import { RecentAlertsTable } from '@/components/dashboard/recent-alerts-table';
-import { AlertControls } from '@/components/dashboard/alert-controls';
 import { CardLoading, ContentLoading } from '@/components/ui/content-loading';
 import { useDashboardStore } from '@/lib/stores/dashboard';
 
@@ -29,15 +28,6 @@ export default function DashboardPage() {
   if (pageLoading) {
     return (
       <div className="space-y-6">
-        {/* Alert Controls skeleton */}
-        <div className="bg-card p-4 rounded-lg shadow-md border flex items-center justify-between animate-pulse">
-          <div className="h-4 w-48 bg-muted rounded"></div>
-          <div className="flex gap-2">
-            <div className="h-8 w-24 bg-muted rounded"></div>
-            <div className="h-8 w-24 bg-muted rounded"></div>
-          </div>
-        </div>
-
         {/* Stats Cards Loading */}
         <CardLoading count={4} />
 
@@ -109,7 +99,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <AlertControls />
       <StatsCards />
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
