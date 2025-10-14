@@ -23,6 +23,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { CardLoading, TableLoading } from '@/components/ui/content-loading';
@@ -45,6 +55,7 @@ export default function PromocodesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [viewDetailsPromocode, setViewDetailsPromocode] = useState<Promocode | null>(null);
+  const [deletePromocodeId, setDeletePromocodeId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -116,16 +127,17 @@ export default function PromocodesPage() {
     setIsModalOpen(true);
   };
 
-  const handleDeletePromocode = async (id: number) => {
-    if (confirm('Are you sure you want to delete this promocode?')) {
-      try {
-        await promocodesService.delete(id);
-        toast.success('Promocode deleted successfully');
-        fetchPromocodes(); // Refresh list
-      } catch (error: any) {
-        console.error('Delete error:', error);
-        toast.error('Failed to delete promocode');
-      }
+  const confirmDelete = async () => {
+    if (!deletePromocodeId) return;
+    
+    try {
+      await promocodesService.delete(deletePromocodeId);
+      toast.success('Promocode deleted successfully');
+      setDeletePromocodeId(null);
+      fetchPromocodes(); // Refresh list
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast.error(error.message || 'Failed to delete promocode');
     }
   };
 
@@ -701,7 +713,7 @@ export default function PromocodesPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="cursor-pointer text-red-600 focus:text-red-600"
-                            onClick={() => handleDeletePromocode(promo.id)}
+                            onClick={() => setDeletePromocodeId(promo.id)}
                           >
                             <span className="material-icons text-sm mr-2">delete</span>
                             Delete
@@ -938,6 +950,31 @@ export default function PromocodesPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletePromocodeId} onOpenChange={() => setDeletePromocodeId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="material-icons text-red-600">warning</span>
+              Delete Promocode
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this promocode? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>delete</span>
+              Delete Promocode
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

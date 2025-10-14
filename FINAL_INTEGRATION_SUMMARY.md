@@ -214,3 +214,4 @@ npm run dev
 **Backend**: Django 5.1.1 + PostgreSQL + DRF  
 **Frontend**: Next.js 15 + React 19 + TypeScript + Tailwind CSS
 
+

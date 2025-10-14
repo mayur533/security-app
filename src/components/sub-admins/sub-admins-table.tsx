@@ -17,6 +17,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -134,6 +144,7 @@ export function SubAdminsTable({ onEditSubAdmin, refreshTrigger = 0 }: SubAdmins
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [viewDetailsUser, setViewDetailsUser] = useState<User | null>(null);
+  const [deleteSubAdminId, setDeleteSubAdminId] = useState<number | null>(null);
 
   // Fetch sub-admins on mount and when refreshTrigger changes
   useEffect(() => {
@@ -209,9 +220,17 @@ export function SubAdminsTable({ onEditSubAdmin, refreshTrigger = 0 }: SubAdmins
     setShowSortMenu(false);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this sub-admin?')) {
-      setSubAdmins(subAdmins.filter((admin) => admin.id !== id));
+  const confirmDelete = async () => {
+    if (!deleteSubAdminId) return;
+    
+    try {
+      await usersService.delete(deleteSubAdminId);
+      toast.success('Sub-admin deleted successfully');
+      setDeleteSubAdminId(null);
+      fetchSubAdmins(); // Refresh list
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast.error(error.message || 'Failed to delete sub-admin');
     }
   };
 
@@ -694,7 +713,7 @@ export function SubAdminsTable({ onEditSubAdmin, refreshTrigger = 0 }: SubAdmins
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="cursor-pointer text-red-600 focus:text-red-600"
-                          onClick={() => handleDelete(admin.id)}
+                          onClick={() => setDeleteSubAdminId(admin.id)}
                         >
                           <span className="material-icons text-sm mr-2">delete</span>
                           Delete
@@ -855,6 +874,31 @@ export function SubAdminsTable({ onEditSubAdmin, refreshTrigger = 0 }: SubAdmins
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteSubAdminId} onOpenChange={() => setDeleteSubAdminId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="material-icons text-red-600">warning</span>
+              Delete Sub-Admin
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this sub-admin? This action cannot be undone and will permanently remove the sub-admin and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>delete</span>
+              Delete Sub-Admin
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

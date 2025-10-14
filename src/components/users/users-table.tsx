@@ -23,6 +23,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useSearch } from '@/lib/contexts/search-context';
@@ -146,6 +156,7 @@ export function UsersTable({ onEditUser, refreshTrigger = 0 }: UsersTableProps) 
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [viewDetailsUser, setViewDetailsUser] = useState<User | null>(null);
+  const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
 
   // Fetch users on mount and when refreshTrigger changes
   useEffect(() => {
@@ -209,16 +220,17 @@ export function UsersTable({ onEditUser, refreshTrigger = 0 }: UsersTableProps) 
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-  const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      try {
-        await usersService.delete(id);
-        toast.success('User deleted successfully');
-        fetchUsers(); // Refresh list
-      } catch (error: any) {
-        console.error('Delete error:', error);
-        toast.error('Failed to delete user');
-      }
+  const confirmDelete = async () => {
+    if (!deleteUserId) return;
+    
+    try {
+      await usersService.delete(deleteUserId);
+      toast.success('User deleted successfully');
+      setDeleteUserId(null);
+      fetchUsers(); // Refresh list
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast.error(error.message || 'Failed to delete user');
     }
   };
 
@@ -722,9 +734,9 @@ export function UsersTable({ onEditUser, refreshTrigger = 0 }: UsersTableProps) 
                           <span className="material-icons text-sm mr-2">visibility</span>
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem
+                        <DropdownMenuItem 
                           className="cursor-pointer text-red-600 focus:text-red-600"
-                          onClick={() => handleDelete(user.id)}
+                          onClick={() => setDeleteUserId(user.id)}
                         >
                           <span className="material-icons text-sm mr-2">delete</span>
                           Delete
@@ -873,6 +885,31 @@ export function UsersTable({ onEditUser, refreshTrigger = 0 }: UsersTableProps) 
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="material-icons text-red-600">warning</span>
+              Delete User
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone and will permanently remove the user and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>delete</span>
+              Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
