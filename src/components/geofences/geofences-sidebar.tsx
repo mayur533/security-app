@@ -11,6 +11,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -51,7 +61,9 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [viewDetailsGeofence, setViewDetailsGeofence] = useState<Geofence | null>(null);
   const [editGeofence, setEditGeofence] = useState<Geofence | null>(null);
+  const [deleteGeofence, setDeleteGeofence] = useState<Geofence | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -121,32 +133,36 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
     }
   };
   
-  const handleDeleteGeofence = async (geo: Geofence) => {
+  const handleDeleteClick = (geo: Geofence) => {
     // Only Sub-Admin can delete
     if (!isSubAdmin) {
       toast.error('Only Sub-Admins can delete geofences');
       return;
     }
     
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${geo.name}"?\n\nThis action cannot be undone.`
-    );
-    
-    if (!confirmed) return;
+    setDeleteGeofence(geo);
+  };
+  
+  const confirmDeleteGeofence = async () => {
+    if (!deleteGeofence) return;
     
     try {
-      await geofencesService.delete(geo.id);
+      setIsDeleting(true);
+      await geofencesService.delete(deleteGeofence.id);
       toast.success('Geofence deleted successfully');
       
       // Clear selection if deleted geofence was selected
-      if (selectedGeofence === geo.id) {
+      if (selectedGeofence === deleteGeofence.id) {
         onSelectGeofence(null);
       }
       
+      setDeleteGeofence(null);
       onRefresh();
     } catch (error: any) {
       console.error('Delete error:', error);
       toast.error(error.message || 'Failed to delete geofence');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -268,7 +284,7 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteGeofence(geo);
+                          handleDeleteClick(geo);
                         }}
                         className="flex items-center gap-1 hover:text-red-600 transition-colors"
                       >
@@ -570,6 +586,59 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteGeofence} onOpenChange={() => setDeleteGeofence(null)}>
+        <AlertDialogContent className="bg-card/95 backdrop-blur-xl border-border/50">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <span className="material-icons">warning</span>
+              Delete Geofence
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Are you sure you want to delete{' '}
+                <strong className="text-foreground">"{deleteGeofence?.name}"</strong>?
+              </p>
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <div className="flex gap-2">
+                  <span className="material-icons text-red-600 text-sm">info</span>
+                  <div className="flex-1">
+                    <p className="text-xs text-red-900 dark:text-red-100 font-medium">
+                      This action cannot be undone
+                    </p>
+                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                      All data associated with this geofence will be permanently removed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteGeofence}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? (
+                <>
+                  <span className="material-icons animate-spin text-sm mr-2">refresh</span>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <span className="material-icons text-sm mr-2">delete</span>
+                  Delete Geofence
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
