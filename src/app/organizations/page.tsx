@@ -48,8 +48,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { organizationsService, Organization, OrganizationCreateData } from '@/lib/services/organizations';
-import { ContentLoading } from '@/components/loading/content-loading';
-import { CardLoading } from '@/components/loading/card-loading';
+import { ContentLoading, CardLoading } from '@/components/ui/content-loading';
 
 export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
