@@ -140,15 +140,14 @@ export function RecentLogsTable() {
       setAlerts(data);
     } catch (error) {
       console.error('Error fetching alerts:', error);
-      // Use mock data as fallback if API fails
-      toast.error('Using sample data - API unavailable');
+      toast.error('Failed to fetch alerts');
     } finally {
       setLoading(false);
     }
   };
 
-  // Use real alerts if available, otherwise use mock data
-  const alertLogs = alerts.length > 0 ? alerts.map(alert => ({
+  // Convert real API alerts to table format
+  const alertLogs = alerts.map(alert => ({
     id: alert.id.toString(),
     timestamp: new Date(alert.created_at).toLocaleString(),
     type: (alert.alert_type || 'System') as AlertLog['type'],
@@ -156,7 +155,7 @@ export function RecentLogsTable() {
     user: alert.user_username || 'System',
     status: (alert.is_resolved ? 'resolved' : alert.severity === 'critical' ? 'critical' : 'pending') as AlertLog['status'],
     responseTime: alert.response_time ? `${alert.response_time} min` : 'N/A',
-  })) : mockAlertLogs;
+  }));
 
   // Filter
   let filteredLogs = alertLogs.filter((log) =>
@@ -224,9 +223,7 @@ export function RecentLogsTable() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-semibold text-lg">Recent Alert Logs</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            {alerts.length > 0 ? 'Real-time alert data from API' : 'Detailed alert history and metrics (Sample Data)'}
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">Real-time alert data from API</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -448,10 +445,16 @@ export function RecentLogsTable() {
             {paginatedLogs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12">
-                  <span className="material-icons text-6xl text-muted-foreground mb-2">
-                    search_off
-                  </span>
-                  <p className="text-muted-foreground">No logs found</p>
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="material-icons text-6xl text-muted-foreground">
+                      {filteredLogs.length === 0 && alerts.length === 0 ? 'notifications_off' : 'search_off'}
+                    </span>
+                    <p className="text-muted-foreground">
+                      {filteredLogs.length === 0 && alerts.length === 0 
+                        ? 'No alerts yet' 
+                        : 'No alerts match your filters'}
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
