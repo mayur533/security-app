@@ -36,34 +36,12 @@ interface DashboardStore {
 
 export const useDashboardStore = create<DashboardStore>((set, get) => ({
   stats: {
-    totalSubAdmins: 28,
-    activeGeofences: 156,
-    activeUsers: 1247,
-    totalAlerts: 89,
+    totalSubAdmins: 0,
+    activeGeofences: 0,
+    activeUsers: 0,
+    totalAlerts: 0,
   },
-  alerts: [
-    {
-      id: '1',
-      time: '2024-07-21 14:32',
-      location: 'Downtown Area',
-      type: 'SOS Alert',
-      status: 'pending',
-    },
-    {
-      id: '2',
-      time: '2024-07-21 14:28',
-      location: 'University Campus',
-      type: 'Emergency Notification',
-      status: 'critical',
-    },
-    {
-      id: '3',
-      time: '2024-07-21 14:15',
-      location: 'Shopping Mall',
-      type: 'Community Alert',
-      status: 'resolved',
-    },
-  ],
+  alerts: [],
   isLoading: false,
   fetchStats: async () => {
     set({ isLoading: true });
@@ -93,9 +71,40 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
   },
   fetchAlerts: async () => {
     set({ isLoading: true });
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    set({ isLoading: false });
+    try {
+      const response = await fetch(API_ENDPOINTS.ALERTS.LIST, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const alertsData = data.results || data;
+        
+        // Convert API alerts to dashboard format (show only recent 5)
+        const recentAlerts: Alert[] = alertsData
+          .slice(0, 5)
+          .map((alert: any) => ({
+            id: alert.id.toString(),
+            time: new Date(alert.created_at).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            location: alert.location || alert.geofence_name || 'N/A',
+            type: alert.alert_type || 'System Alert',
+            status: alert.is_resolved ? 'resolved' : (alert.severity === 'critical' ? 'critical' : 'pending'),
+          }));
+
+        set({ alerts: recentAlerts });
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard alerts:', error);
+      // Keep existing mock data on error
+    } finally {
+      set({ isLoading: false });
+    }
   },
   updateAlertStatus: (id: string, status: Alert['status']) => {
     set(state => ({

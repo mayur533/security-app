@@ -12,15 +12,19 @@ import { useDashboardStore } from '@/lib/stores/dashboard';
 
 export default function DashboardPage() {
   const [pageLoading, setPageLoading] = useState(true);
-  const { isLoading: statsLoading } = useDashboardStore();
+  const { isLoading: statsLoading, fetchAlerts } = useDashboardStore();
 
   useEffect(() => {
     // Initial page load
     const timer = setTimeout(() => {
       setPageLoading(false);
     }, 1000);
+    
+    // Fetch alerts on mount
+    fetchAlerts();
+    
     return () => clearTimeout(timer);
-  }, []);
+  }, [fetchAlerts]);
 
   if (pageLoading) {
     return (
