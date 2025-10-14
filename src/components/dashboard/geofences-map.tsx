@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { geofencesService } from '@/lib/services/geofences';
+import { toast } from 'sonner';
 
 // Dynamically import MapContainer to avoid SSR issues
 const MapContainer = dynamic(
@@ -14,8 +16,8 @@ const TileLayer = dynamic(
   { ssr: false }
 );
 
-const Marker = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Marker),
+const Polygon = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Polygon),
   { ssr: false }
 );
 
@@ -24,29 +26,26 @@ const Popup = dynamic(
   { ssr: false }
 );
 
-interface GeofenceLocation {
-  id: string;
+interface Geofence {
+  id: number;
   name: string;
-  lat: number;
-  lng: number;
+  polygon_json: any;
+  center_point?: any;
+  active: boolean;
+  organization_name?: string;
 }
-
-const geofenceLocations: GeofenceLocation[] = [
-  { id: '1', name: 'University Campus', lat: 40.7128, lng: -74.0060 },
-  { id: '2', name: 'Downtown Area', lat: 51.5074, lng: -0.1278 },
-  { id: '3', name: 'Shopping Mall', lat: 35.6762, lng: 139.6503 },
-  { id: '4', name: 'Business District', lat: -33.8688, lng: 151.2093 },
-  { id: '5', name: 'Residential Zone', lat: 25.2048, lng: 55.2708 },
-];
 
 export function GeofencesMap() {
   const [isClient, setIsClient] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [geofences, setGeofences] = useState<Geofence[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
+    fetchGeofences();
     
     // Detect application theme
     const checkTheme = () => {
@@ -68,43 +67,76 @@ export function GeofencesMap() {
     };
   }, []);
 
+  const fetchGeofences = async () => {
+    try {
+      setLoading(true);
+      const data = await geofencesService.getAll();
+      setGeofences(data.filter(g => g.active)); // Only show active geofences
+    } catch (error) {
+      console.error('Error fetching geofences:', error);
+      toast.error('Failed to fetch geofences');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Extract coordinates from polygon_json
+  const getPolygonCoordinates = (polygonJson: any): [number, number][] => {
+    try {
+      if (Array.isArray(polygonJson)) {
+        return polygonJson.map((point: any) => [point.lat || point.latitude, point.lng || point.longitude]);
+      }
+      if (polygonJson.coordinates && Array.isArray(polygonJson.coordinates)) {
+        return polygonJson.coordinates.map((point: any) => [point.lat || point.latitude, point.lng || point.longitude]);
+      }
+      return [];
+    } catch (error) {
+      console.error('Error parsing polygon coordinates:', error);
+      return [];
+    }
+  };
+
+  // Calculate map center from geofences
+  const getMapCenter = (): [number, number] => {
+    if (geofences.length === 0) return [20, 0];
+    
+    try {
+      // Use center_point if available
+      if (geofences[0].center_point?.lat && geofences[0].center_point?.lng) {
+        return [geofences[0].center_point.lat, geofences[0].center_point.lng];
+      }
+      
+      // Calculate from first geofence polygon
+      const coords = getPolygonCoordinates(geofences[0].polygon_json);
+      if (coords.length > 0) {
+        const avgLat = coords.reduce((sum, coord) => sum + coord[0], 0) / coords.length;
+        const avgLng = coords.reduce((sum, coord) => sum + coord[1], 0) / coords.length;
+        if (!isNaN(avgLat) && !isNaN(avgLng)) {
+          return [avgLat, avgLng];
+        }
+      }
+    } catch (error) {
+      console.error('Error calculating map center:', error);
+    }
+    
+    return [20, 0];
+  };
+
+  const mapCenter = loading ? [20, 0] as [number, number] : getMapCenter();
+
+  // Assign colors to geofences
+  const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+  const geofencesWithColors = geofences.map((geo, index) => ({
+    ...geo,
+    color: colors[index % colors.length],
+  }));
+
   if (!isClient) {
     return (
       <div className="lg:col-span-2 bg-card p-6 rounded-lg shadow-md border">
-        <h3 className="font-semibold mb-4 text-lg">Security Zones Overview</h3>
+        <h3 className="font-semibold mb-4 text-lg">Geofences Overview</h3>
         <div className="relative h-96 bg-muted rounded-md overflow-hidden flex items-center justify-center">
           <div className="text-muted-foreground">Loading map...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (mapError) {
-    return (
-      <div className="lg:col-span-2 bg-card p-6 rounded-lg shadow-md border">
-        <h3 className="font-semibold mb-4 text-lg">Security Zones Overview</h3>
-        <div className="relative h-96 bg-muted rounded-md overflow-hidden flex items-center justify-center">
-          <div className="text-center">
-            <img 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeaqmcqa_yagXJNqVqXnysSnsK-NH5zvArOqbXoLJxp8ZoL5TKWGvuu0YzKEUbVyMn6hohwBXoV0LEnScnv8pYqnXJlege5ulWgdEXJq2vdxWIEB9QUOM-Sqa3BOo8ojMdfluo_iUAnLnW0XNlt4eoyf8z4EIUDjBAi4CEdihbNPornWEzJTzBrAG_BBnoWxXYgx59GFxWHblnoA6FQV4howFV2RJYvnIEJarck2_Kl2uwRqdsdB733OX3uVkySDXg-lfpi_PmAVj5"
-              alt="World map with geofence markers"
-              className="w-full h-full object-cover opacity-80"
-            />
-            {geofenceLocations.map((location, index) => (
-              <div
-                key={location.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2"
-                style={{
-                  top: `${20 + (index * 15)}%`,
-                  left: `${25 + (index * 12)}%`,
-                }}
-              >
-                <span className="material-icons text-primary" style={{ fontSize: '20px' }}>
-                  location_on
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     );
@@ -144,33 +176,59 @@ export function GeofencesMap() {
         }`}
         style={isFullscreen ? { height: '100vh' } : {}}
       >
-        <MapContainer
-          center={[20, 0]}
-          zoom={2}
-          style={{ height: '100%', width: '100%', backgroundColor: isDarkMode ? '#0f172a' : '#e5e7eb' }}
-          className="z-0"
-        >
-          <TileLayer
-            url={
-              isDarkMode
-                ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            }
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          />
-          {geofenceLocations.map((location) => (
-            <Marker key={location.id} position={[location.lat, location.lng]}>
-              <Popup>
-                <div className="text-center">
-                  <span className="material-icons text-primary" style={{ fontSize: '20px' }}>
-                    location_on
-                  </span>
-                  <p className="text-sm font-medium mt-1">{location.name}</p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+        {loading ? (
+          <div className="h-full flex items-center justify-center bg-muted/20">
+            <div className="text-muted-foreground animate-pulse">Loading geofences...</div>
+          </div>
+        ) : (
+          <MapContainer
+            center={mapCenter}
+            zoom={geofences.length > 0 ? 12 : 2}
+            style={{ height: '100%', width: '100%', backgroundColor: isDarkMode ? '#0f172a' : '#e5e7eb' }}
+            className="z-0"
+          >
+            <TileLayer
+              url={
+                isDarkMode
+                  ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              }
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            />
+            {geofencesWithColors.map((geofence) => {
+              const coordinates = getPolygonCoordinates(geofence.polygon_json);
+              if (coordinates.length === 0) return null;
+
+              return (
+                <Polygon
+                  key={geofence.id}
+                  positions={coordinates}
+                  pathOptions={{
+                    color: geofence.color,
+                    fillColor: geofence.color,
+                    fillOpacity: 0.3,
+                    weight: 2,
+                  }}
+                >
+                  <Popup>
+                    <div className="p-2">
+                      <p className="font-semibold text-sm">{geofence.name}</p>
+                      {geofence.organization_name && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {geofence.organization_name}
+                        </p>
+                      )}
+                      <div className="mt-2 flex items-center gap-1">
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: geofence.color }}></span>
+                        <span className="text-xs">Active Zone</span>
+                      </div>
+                    </div>
+                  </Popup>
+                </Polygon>
+              );
+            })}
+          </MapContainer>
+        )}
       </div>
     </div>
   );
