@@ -114,10 +114,10 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
             </div>
           ) : (
             filteredGeofences.map((geo) => (
-              <button
+              <div
                 key={geo.id}
                 onClick={() => onSelectGeofence(selectedGeofence === geo.id ? null : geo.id)}
-                className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
+                className={`w-full text-left p-3 rounded-lg transition-all duration-200 cursor-pointer ${
                   selectedGeofence === geo.id
                     ? 'bg-gradient-to-r from-indigo-100 to-blue-100 dark:from-indigo-900/40 dark:to-blue-900/40 shadow-lg border-2'
                     : 'bg-background hover:bg-muted border border-border'
@@ -173,7 +173,7 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
                   </div>
                   <span className="text-xs">{formatDate(geo.created_at).split(',')[0]}</span>
                 </div>
-              </button>
+              </div>
             ))
           )}
         </div>
