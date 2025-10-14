@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { notificationsService } from '@/lib/services/notifications';
 
 interface Notification {
   id: string;
@@ -88,8 +89,45 @@ interface NotificationDropdownProps {
 }
 
 export function NotificationDropdown({ onViewAll, onClose }: NotificationDropdownProps) {
-  const [notifications] = useState<Notification[]>(sampleNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const data = await notificationsService.getAll();
+      
+      // Convert API notifications to dropdown format (show only recent 5 unsent as unread)
+      const recentNotifs: Notification[] = data
+        .slice(0, 5)
+        .map((notif: any) => ({
+          id: notif.id.toString(),
+          title: notif.title,
+          message: notif.message,
+          time: new Date(notif.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          type: notif.notification_type === 'emergency' ? 'error' : 'info',
+          unread: !notif.is_sent, // Unsent notifications are "unread"
+        }));
+
+      setNotifications(recentNotifs);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      // Keep empty array on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const unreadCount = notifications.filter(n => n.unread).length;
 
   const handleViewAll = () => {
@@ -116,28 +154,39 @@ export function NotificationDropdown({ onViewAll, onClose }: NotificationDropdow
         </div>
         
         <div className="max-h-64 overflow-y-auto">
-          {notifications.slice(0, 4).map((notification) => (
-            <div
-              key={notification.id}
-              className={`p-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
-                notification.unread ? 'bg-blue-50/50' : ''
-              }`}
-            >
-              <div className="flex items-start space-x-3">
-                <span className={`material-icons-outlined text-sm mt-0.5 ${getNotificationColor(notification.type)}`}>
-                  {getNotificationIcon(notification.type)}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{notification.title}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
-                </div>
-                {notification.unread && (
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                )}
-              </div>
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-pulse text-muted-foreground">Loading...</div>
             </div>
-          ))}
+          ) : notifications.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <span className="material-icons text-4xl mb-2">notifications_off</span>
+              <p className="text-sm">No notifications</p>
+            </div>
+          ) : (
+            notifications.slice(0, 4).map((notification) => (
+              <div
+                key={notification.id}
+                className={`p-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
+                  notification.unread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                }`}
+              >
+                <div className="flex items-start space-x-3">
+                  <span className={`material-icons-outlined text-sm mt-0.5 ${getNotificationColor(notification.type)}`}>
+                    {getNotificationIcon(notification.type)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{notification.title}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                  </div>
+                  {notification.unread && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
         
         <DropdownMenuSeparator />
