@@ -153,20 +153,6 @@ export function UserActivityChart() {
     );
   }
 
-  if (data.length === 0 || data.every(d => d.users === 0)) {
-    return (
-      <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
-        <div className="mb-6">
-          <h3 className="font-semibold text-lg">User Registrations</h3>
-          <p className="text-xs text-muted-foreground mt-1">Weekly registration activity</p>
-        </div>
-        <div className="h-64 flex flex-col items-center justify-center text-muted-foreground">
-          <span className="material-icons text-6xl mb-4">person_add</span>
-          <p>No user registration data available</p>
-        </div>
-      </div>
-    );
-  }
   return (
     <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
       <div className="flex items-center justify-between mb-6">
@@ -267,41 +253,49 @@ export function UserActivityChart() {
       </div>
       
       <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-            <XAxis 
-              dataKey="label" 
-              tick={{ fontSize: 12 }}
-              stroke="hsl(var(--muted-foreground))"
-            />
-            <YAxis 
-              tick={{ fontSize: 12 }}
-              stroke="hsl(var(--muted-foreground))"
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="users"
-              stroke="#6366f1"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorUsers)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {data.length === 0 || data.every(d => d.users === 0) ? (
+          <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+            <span className="material-icons text-5xl mb-3">person_add</span>
+            <p className="text-sm">No registrations in this period</p>
+            <p className="text-xs mt-1">Try selecting a different time range</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+              <XAxis 
+                dataKey="label" 
+                tick={{ fontSize: 12 }}
+                stroke="hsl(var(--muted-foreground))"
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                stroke="hsl(var(--muted-foreground))"
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="users"
+                stroke="#6366f1"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorUsers)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
