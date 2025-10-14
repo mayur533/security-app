@@ -1,25 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { GeofencesMap } from '@/components/geofences/geofences-map';
 import { GeofencesSidebar } from '@/components/geofences/geofences-sidebar';
 import { GeofencesStats } from '@/components/geofences/geofences-stats';
 import { CreateGeofenceModal } from '@/components/geofences/create-geofence-modal';
 import { Button } from '@/components/ui/button';
 import { ContentLoading } from '@/components/ui/content-loading';
+import { geofencesService, type Geofence } from '@/lib/services/geofences';
 
 export default function SubAdminGeofencesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedGeofence, setSelectedGeofence] = useState<string | null>(null);
+  const [selectedGeofence, setSelectedGeofence] = useState<number | null>(null);
+  const [geofences, setGeofences] = useState<Geofence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate initial data loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    fetchGeofences();
   }, []);
+
+  const fetchGeofences = async () => {
+    try {
+      setIsLoading(true);
+      const data = await geofencesService.getAll();
+      // TODO: Filter by Sub-Admin's organization if backend doesn't already
+      setGeofences(data);
+    } catch (error: any) {
+      console.error('Error fetching geofences:', error);
+      toast.error('Failed to load geofences');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -73,7 +86,7 @@ export default function SubAdminGeofencesPage() {
       </div>
 
       {/* Stats Cards */}
-      <GeofencesStats isLoading={false} />
+      <GeofencesStats geofences={geofences} isLoading={false} />
 
       {/* Map and Sidebar Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -81,6 +94,7 @@ export default function SubAdminGeofencesPage() {
         <div className="lg:col-span-3">
           <GeofencesMap
             selectedGeofence={selectedGeofence}
+            geofences={geofences}
             onSelectGeofence={setSelectedGeofence}
           />
         </div>
@@ -89,7 +103,9 @@ export default function SubAdminGeofencesPage() {
         <div className="lg:col-span-1">
           <GeofencesSidebar
             selectedGeofence={selectedGeofence}
+            geofences={geofences}
             onSelectGeofence={setSelectedGeofence}
+            onRefresh={fetchGeofences}
           />
         </div>
       </div>

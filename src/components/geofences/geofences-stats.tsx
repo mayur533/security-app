@@ -1,37 +1,45 @@
 'use client';
 
 import { CardLoading } from '@/components/ui/content-loading';
+import { type Geofence } from '@/lib/services/geofences';
 
 interface GeofencesStatsProps {
+  geofences: Geofence[];
   isLoading?: boolean;
 }
 
-export function GeofencesStats({ isLoading = false }: GeofencesStatsProps) {
+export function GeofencesStats({ geofences, isLoading = false }: GeofencesStatsProps) {
   if (isLoading) {
     return <CardLoading count={3} />;
   }
+
+  // Calculate stats from real geofences data
+  const totalGeofences = geofences.length;
+  const activeGeofences = geofences.filter(g => g.active).length;
+  const inactiveGeofences = geofences.filter(g => !g.active).length;
+
   const stats = [
     {
       title: 'Total Geofences',
-      value: 28,
-      change: '+4 this month',
+      value: totalGeofences,
+      change: `${activeGeofences} active zones`,
       icon: 'public',
       gradient: 'from-indigo-500 to-purple-600',
     },
     {
-      title: 'Active Alerts',
-      value: 12,
-      change: '3 critical',
-      icon: 'warning',
-      gradient: 'from-orange-500 to-red-600',
+      title: 'Active Zones',
+      value: activeGeofences,
+      change: 'Currently monitored',
+      icon: 'check_circle',
+      gradient: 'from-green-500 to-green-600',
       showPulse: true,
     },
     {
-      title: 'Assigned Officers',
-      value: 89,
-      change: '76 online now',
-      icon: 'badge',
-      gradient: 'from-blue-500 to-cyan-600',
+      title: 'Inactive Zones',
+      value: inactiveGeofences,
+      change: 'Disabled zones',
+      icon: 'block',
+      gradient: 'from-orange-500 to-red-600',
     },
   ];
 
