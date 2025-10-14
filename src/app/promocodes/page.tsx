@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Table,
@@ -42,6 +43,7 @@ type SortField = 'code' | 'discount_percentage' | 'expiry_date' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 export default function PromocodesPage() {
+  const router = useRouter();
   const [promocodes, setPromocodes] = useState<Promocode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -266,13 +268,23 @@ export default function PromocodesPage() {
           <h1 className="text-3xl font-bold">Promocodes</h1>
           <p className="text-muted-foreground mt-1">Manage discount codes and promotional offers</p>
         </div>
-        <Button
-          onClick={handleAddPromocode}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <span className="material-icons text-xl mr-2">add</span>
-          Create Promocode
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => router.push('/discount-emails')}
+            variant="outline"
+            className="px-6 py-2.5 rounded-lg font-medium shadow hover:shadow-lg transition-all duration-200"
+          >
+            <span className="material-icons text-xl mr-2">campaign</span>
+            Send Discount Emails
+          </Button>
+          <Button
+            onClick={handleAddPromocode}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <span className="material-icons text-xl mr-2">add</span>
+            Create Promocode
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
