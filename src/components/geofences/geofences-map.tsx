@@ -105,11 +105,14 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
 
   return (
     <>
-      <div className={`relative ${
+      <div className={`${
         isFullscreen 
-          ? 'fixed inset-0 z-[999] bg-card' 
-          : 'bg-card rounded-lg shadow-md border overflow-hidden'
-      }`} style={{ height: isFullscreen ? '100vh' : '600px' }}>
+          ? 'fixed inset-0 z-[999]' 
+          : 'relative bg-card rounded-lg shadow-md border overflow-hidden'
+      }`} style={{ 
+        height: isFullscreen ? '100vh' : '600px',
+        width: isFullscreen ? '100vw' : '100%'
+      }}>
       {/* Map */}
       <MapContainer
         center={defaultCenter}
