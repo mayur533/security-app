@@ -80,30 +80,29 @@ export function GeofencesMap() {
     }
   };
 
-  // Extract coordinates from polygon_json
+  // Extract coordinates from polygon_json (GeoJSON format)
   const getPolygonCoordinates = (polygonJson: any): [number, number][] => {
     try {
-      if (Array.isArray(polygonJson)) {
-        return polygonJson.map((point: any) => [point.lat || point.latitude, point.lng || point.longitude]);
-      }
-      if (polygonJson.coordinates && Array.isArray(polygonJson.coordinates)) {
-        return polygonJson.coordinates.map((point: any) => [point.lat || point.latitude, point.lng || point.longitude]);
+      if (polygonJson?.type === 'Polygon' && Array.isArray(polygonJson.coordinates)) {
+        // GeoJSON format is [lng, lat] but Leaflet needs [lat, lng]
+        const coords = polygonJson.coordinates[0] as number[][];
+        return coords.map((coord: number[]) => [coord[0], coord[1]] as [number, number]);
       }
       return [];
     } catch (error) {
-      console.error('Error parsing polygon coordinates:', error);
+      console.error('Error extracting coordinates:', error);
       return [];
     }
   };
 
   // Calculate map center from geofences
   const getMapCenter = (): [number, number] => {
-    if (geofences.length === 0) return [20, 0];
+    if (geofences.length === 0) return [40.7128, -74.0060]; // Default to NYC
     
     try {
-      // Use center_point if available
-      if (geofences[0].center_point?.lat && geofences[0].center_point?.lng) {
-        return [geofences[0].center_point.lat, geofences[0].center_point.lng];
+      // Use center_point if available (it's an array [lat, lng])
+      if (Array.isArray(geofences[0].center_point) && geofences[0].center_point.length === 2) {
+        return [geofences[0].center_point[0], geofences[0].center_point[1]];
       }
       
       // Calculate from first geofence polygon
@@ -119,10 +118,10 @@ export function GeofencesMap() {
       console.error('Error calculating map center:', error);
     }
     
-    return [20, 0];
+    return [40.7128, -74.0060]; // Fallback to NYC
   };
 
-  const mapCenter = loading ? [20, 0] as [number, number] : getMapCenter();
+  const mapCenter = loading ? [40.7128, -74.0060] as [number, number] : getMapCenter();
 
   // Assign colors to geofences
   const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
