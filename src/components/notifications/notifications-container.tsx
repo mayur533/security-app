@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -11,132 +12,44 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useSearch } from '@/lib/contexts/search-context';
 import { CardLoading, TableLoading } from '@/components/ui/content-loading';
+import { notificationsService, type Notification } from '@/lib/services/notifications';
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  time: string;
-  type: 'info' | 'warning' | 'success' | 'error';
-  unread: boolean;
-  location?: string;
-}
-
-const allNotifications: Notification[] = [
-  {
-    id: '1',
-    title: 'SOS Alert',
-    message: 'Emergency alert triggered in University Campus',
-    time: '2024-07-21 14:32',
-    type: 'error',
-    unread: true,
-    location: 'University Campus',
-  },
-  {
-    id: '2',
-    title: 'User Registration',
-    message: 'New user joined the security network',
-    time: '2024-07-21 14:15',
-    type: 'success',
-    unread: true,
-    location: 'Downtown Area',
-  },
-  {
-    id: '3',
-    title: 'Geofence Created',
-    message: 'New security zone added to Downtown Area',
-    time: '2024-07-21 13:45',
-    type: 'info',
-    unread: false,
-    location: 'Downtown Area',
-  },
-  {
-    id: '4',
-    title: 'Security Alert Resolved',
-    message: 'Previous emergency alert has been resolved',
-    time: '2024-07-21 13:30',
-    type: 'success',
-    unread: false,
-    location: 'Shopping Mall',
-  },
-  {
-    id: '5',
-    title: 'System Update',
-    message: 'Security protocols updated successfully',
-    time: '2024-07-21 12:00',
-    type: 'info',
-    unread: false,
-  },
-  {
-    id: '6',
-    title: 'Community Alert',
-    message: 'Emergency notification sent to community members',
-    time: '2024-07-21 11:30',
-    type: 'warning',
-    unread: false,
-    location: 'Business District',
-  },
-  {
-    id: '7',
-    title: 'Sub-admin Added',
-    message: 'New sub-admin assigned to manage security zones',
-    time: '2024-07-21 10:15',
-    type: 'info',
-    unread: false,
-  },
-  {
-    id: '8',
-    title: 'Maintenance Complete',
-    message: 'Scheduled system maintenance completed successfully',
-    time: '2024-07-21 09:00',
-    type: 'success',
-    unread: false,
-  },
-];
-
-const getStatusBadge = (type: Notification['type']) => {
-  switch (type) {
-    case 'error':
-      return (
-        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
-          Critical
-        </Badge>
-      );
-    case 'warning':
-      return (
-        <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300">
-          Warning
-        </Badge>
-      );
-    case 'success':
-      return (
-        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
-          Success
-        </Badge>
-      );
-    case 'info':
-    default:
-      return (
-        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
-          Info
-        </Badge>
-      );
+const getStatusBadge = (notificationType: 'NORMAL' | 'EMERGENCY') => {
+  if (notificationType === 'EMERGENCY') {
+    return (
+      <Badge className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 border border-red-200">
+        <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
+        Emergency
+      </Badge>
+    );
   }
+  return (
+    <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200">
+      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+      Normal
+    </Badge>
+  );
 };
 
-type SortField = 'time' | 'title' | 'type';
+type SortField = 'created_at' | 'title' | 'notification_type';
 type SortOrder = 'asc' | 'desc';
-type FilterType = 'all' | 'unread' | 'info' | 'warning' | 'success' | 'error';
+type FilterType = 'all' | 'NORMAL' | 'EMERGENCY' | 'sent' | 'unsent';
 
 export function NotificationsContainer() {
-  const [notifications, setNotifications] = useState<Notification[]>(allNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const { searchQuery } = useSearch();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [sortField, setSortField] = useState<SortField>('time');
+  const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [showPaginationMenu, setShowPaginationMenu] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -144,19 +57,31 @@ export function NotificationsContainer() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    fetchNotifications();
   }, []);
 
-  // Filter by type and unread
+  const fetchNotifications = async () => {
+    try {
+      setIsLoading(true);
+      const data = await notificationsService.getAll();
+      setNotifications(data);
+    } catch (error: any) {
+      console.error('Error fetching notifications:', error);
+      toast.error('Failed to load notifications');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter by type and sent status
   let filteredNotifications = notifications;
   
-  if (filter === 'unread') {
-    filteredNotifications = filteredNotifications.filter(n => n.unread);
-  } else if (filter !== 'all') {
-    filteredNotifications = filteredNotifications.filter(n => n.type === filter);
+  if (filter === 'sent') {
+    filteredNotifications = filteredNotifications.filter(n => n.is_sent);
+  } else if (filter === 'unsent') {
+    filteredNotifications = filteredNotifications.filter(n => !n.is_sent);
+  } else if (filter === 'NORMAL' || filter === 'EMERGENCY') {
+    filteredNotifications = filteredNotifications.filter(n => n.notification_type === filter);
   }
 
   // Filter by search query
@@ -164,15 +89,14 @@ export function NotificationsContainer() {
     filteredNotifications = filteredNotifications.filter(
       (notif) =>
         notif.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        notif.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (notif.location && notif.location.toLowerCase().includes(searchQuery.toLowerCase()))
+        notif.message.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }
 
   // Sort
   filteredNotifications = [...filteredNotifications].sort((a, b) => {
-    let aValue = a[sortField];
-    let bValue = b[sortField];
+    let aValue: any = a[sortField as keyof Notification];
+    let bValue: any = b[sortField as keyof Notification];
 
     if (sortOrder === 'asc') {
       return aValue > bValue ? 1 : -1;
@@ -187,17 +111,8 @@ export function NotificationsContainer() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedNotifications = filteredNotifications.slice(startIndex, endIndex);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
-
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, unread: false } : n)
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
-  };
+  const unsentCount = notifications.filter(n => !n.is_sent).length;
+  const emergencyCount = notifications.filter(n => n.notification_type === 'EMERGENCY').length;
 
   if (isLoading) {
     return (
@@ -234,22 +149,14 @@ export function NotificationsContainer() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-semibold text-lg">All Notifications</h3>
-          <p className="text-sm text-muted-foreground">{unreadCount} unread notifications</p>
+          <p className="text-sm text-muted-foreground">
+            {notifications.length} total • {emergencyCount} emergency • {unsentCount} unsent
+          </p>
         </div>
       </div>
 
       {/* Pagination, Filter, and Sort Controls */}
       <div className="flex items-center justify-end gap-3 mb-6">
-        {/* Mark All Read Button */}
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllAsRead}
-            className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-lg hover:bg-muted transition-colors"
-          >
-            <span className="material-icons text-lg">done_all</span>
-            <span className="text-sm font-medium">Mark All Read</span>
-          </button>
-        )}
 
         {/* Pagination Button */}
         <div className="relative">
@@ -401,17 +308,31 @@ export function NotificationsContainer() {
                 </button>
                 <button
                   onClick={() => {
-                    setFilter('unread');
+                    setFilter('sent');
                     setCurrentPage(1);
                     setShowFilterMenu(false);
                   }}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                    filter === 'unread'
+                    filter === 'sent'
                       ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
                       : 'hover:bg-muted'
                   }`}
                 >
-                  Unread Only
+                  Sent Only
+                </button>
+                <button
+                  onClick={() => {
+                    setFilter('unsent');
+                    setCurrentPage(1);
+                    setShowFilterMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                    filter === 'unsent'
+                      ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  Unsent Only
                 </button>
 
                 <div className="border-t border-border my-2"></div>
@@ -421,63 +342,33 @@ export function NotificationsContainer() {
                 </div>
                 <button
                   onClick={() => {
-                    setFilter('info');
+                    setFilter('NORMAL');
                     setCurrentPage(1);
                     setShowFilterMenu(false);
                   }}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
-                    filter === 'info'
+                    filter === 'NORMAL'
                       ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
                       : 'hover:bg-muted'
                   }`}
                 >
                   <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                  Info
+                  Normal
                 </button>
                 <button
                   onClick={() => {
-                    setFilter('success');
+                    setFilter('EMERGENCY');
                     setCurrentPage(1);
                     setShowFilterMenu(false);
                   }}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
-                    filter === 'success'
+                    filter === 'EMERGENCY'
                       ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
                       : 'hover:bg-muted'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                  Success
-                </button>
-                <button
-                  onClick={() => {
-                    setFilter('warning');
-                    setCurrentPage(1);
-                    setShowFilterMenu(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
-                    filter === 'warning'
-                      ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                  Warning
-                </button>
-                <button
-                  onClick={() => {
-                    setFilter('error');
-                    setCurrentPage(1);
-                    setShowFilterMenu(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
-                    filter === 'error'
-                      ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                  Critical
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  Emergency
                 </button>
               </div>
             </div>
@@ -505,21 +396,25 @@ export function NotificationsContainer() {
                 <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
                   Sort By
                 </div>
-                {(['time', 'title', 'type'] as SortField[]).map((field) => (
+                {[
+                  { value: 'created_at' as SortField, label: 'Date Created' },
+                  { value: 'title' as SortField, label: 'Title' },
+                  { value: 'notification_type' as SortField, label: 'Type' }
+                ].map((option) => (
                   <button
-                    key={field}
+                    key={option.value}
                     onClick={() => {
-                      setSortField(field);
+                      setSortField(option.value);
                       setCurrentPage(1);
                       setShowSortMenu(false);
                     }}
                     className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                      sortField === field
+                      sortField === option.value
                         ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-100'
                         : 'hover:bg-muted'
                     }`}
                   >
-                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                    {option.label}
                   </button>
                 ))}
 
@@ -568,44 +463,70 @@ export function NotificationsContainer() {
             <TableRow className="border-b">
               <TableHead className="text-muted-foreground text-sm font-medium">Title</TableHead>
               <TableHead className="text-muted-foreground text-sm font-medium">Message</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-medium">Location</TableHead>
-              <TableHead className="text-muted-foreground text-sm font-medium">Time</TableHead>
+              <TableHead className="text-muted-foreground text-sm font-medium">Geofence</TableHead>
+              <TableHead className="text-muted-foreground text-sm font-medium">Organization</TableHead>
               <TableHead className="text-muted-foreground text-sm font-medium">Type</TableHead>
               <TableHead className="text-muted-foreground text-sm font-medium">Status</TableHead>
+              <TableHead className="text-muted-foreground text-sm font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedNotifications.map((notification) => (
               <TableRow
                 key={notification.id}
-                className={`border-b hover:bg-muted/50 transition-colors cursor-pointer ${
-                  notification.unread ? 'bg-blue-50/30' : ''
-                }`}
-                onClick={() => markAsRead(notification.id)}
+                className="border-b hover:bg-muted/50 transition-colors"
               >
-                <TableCell className="py-3 px-4">
+                <TableCell className="py-4 px-4">
                   <div className="font-medium text-sm">{notification.title}</div>
+                  <div className="text-xs text-muted-foreground">By: {notification.created_by_username || 'System'}</div>
                 </TableCell>
-                <TableCell className="py-3 px-4">
-                  <div className="text-sm">{notification.message}</div>
+                <TableCell className="py-4 px-4">
+                  <div className="text-sm max-w-xs truncate">{notification.message}</div>
                 </TableCell>
-                <TableCell className="py-3 px-4">
-                  <div className="text-sm">{notification.location || '-'}</div>
-                </TableCell>
-                <TableCell className="py-3 px-4">
-                  <div className="text-sm">{notification.time}</div>
-                </TableCell>
-                <TableCell className="py-3 px-4">
-                  <div className="text-sm">{getStatusBadge(notification.type)}</div>
-                </TableCell>
-                <TableCell className="py-3 px-4">
-                  <div className="text-sm">
-                    {notification.unread ? (
-                      <span className="font-medium text-blue-600">Unread</span>
-                    ) : (
-                      <span className="text-muted-foreground">Read</span>
-                    )}
+                <TableCell className="py-4 px-4">
+                  <div className="text-sm flex items-center gap-1">
+                    <span className="material-icons text-xs text-indigo-600">location_on</span>
+                    {notification.target_geofence_name || 'All'}
                   </div>
+                </TableCell>
+                <TableCell className="py-4 px-4">
+                  <div className="text-sm flex items-center gap-1">
+                    <span className="material-icons text-xs text-indigo-600">business</span>
+                    {notification.organization_name || '-'}
+                  </div>
+                </TableCell>
+                <TableCell className="py-4 px-4">
+                  {getStatusBadge(notification.notification_type)}
+                </TableCell>
+                <TableCell className="py-4 px-4">
+                  <Badge variant={notification.is_sent ? "default" : "outline"}>
+                    {notification.is_sent ? 'Sent' : 'Draft'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="py-4 px-4 text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-muted"
+                      >
+                        <span className="material-icons text-lg">more_vert</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem className="cursor-pointer">
+                        <span className="material-icons text-sm mr-2">visibility</span>
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer text-red-600 focus:text-red-600"
+                      >
+                        <span className="material-icons text-sm mr-2">delete</span>
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}

@@ -7,11 +7,15 @@ export interface Notification {
   message: string;
   target_type: string;
   target_geofence?: number;
+  target_geofence_name?: string;
   target_officers?: number[];
+  target_officers_names?: string[];
   organization: number;
+  organization_name?: string;
   is_sent: boolean;
   sent_at?: string;
   created_by: number;
+  created_by_username?: string;
   created_at: string;
   updated_at: string;
 }
