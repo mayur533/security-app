@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -13,26 +13,99 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-
-const data = [
-  { date: 'Jan 1', SOS: 12, Emergency: 8, Community: 5 },
-  { date: 'Jan 8', SOS: 19, Emergency: 12, Community: 7 },
-  { date: 'Jan 15', SOS: 15, Emergency: 10, Community: 9 },
-  { date: 'Jan 22', SOS: 22, Emergency: 15, Community: 11 },
-  { date: 'Jan 29', SOS: 18, Emergency: 13, Community: 8 },
-  { date: 'Feb 5', SOS: 25, Emergency: 18, Community: 12 },
-  { date: 'Feb 12', SOS: 21, Emergency: 16, Community: 10 },
-];
+import { alertsService, Alert } from '@/lib/services/alerts';
+import { toast } from 'sonner';
 
 export function AlertTrendsChart() {
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAlerts();
+  }, []);
+
+  const fetchAlerts = async () => {
+    try {
+      setLoading(true);
+      const data = await alertsService.getAll();
+      setAlerts(data);
+    } catch (error) {
+      console.error('Error fetching alerts:', error);
+      toast.error('Failed to fetch alert trends');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Process alerts data into weekly trends
+  const processAlertTrends = () => {
+    if (alerts.length === 0) return [];
+
+    // Group alerts by week
+    const weeklyData: { [key: string]: { [key: string]: number } } = {};
+    
+    alerts.forEach(alert => {
+      const date = new Date(alert.created_at);
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+      const weekKey = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      if (!weeklyData[weekKey]) {
+        weeklyData[weekKey] = {};
+      }
+      
+      const alertType = alert.alert_type || 'System';
+      weeklyData[weekKey][alertType] = (weeklyData[weekKey][alertType] || 0) + 1;
+    });
+
+    // Convert to array format for recharts
+    return Object.entries(weeklyData)
+      .map(([date, types]) => ({
+        date,
+        ...types,
+      }))
+      .slice(-7); // Last 7 weeks
+  };
+
+  const data = processAlertTrends();
+
+  if (loading) {
+    return (
+      <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg">Alert Trends</h3>
+          <p className="text-xs text-muted-foreground mt-1">Loading alert data...</p>
+        </div>
+        <div className="h-[435px] flex items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">Loading chart...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg">Alert Trends</h3>
+          <p className="text-xs text-muted-foreground mt-1">Weekly alert distribution over time</p>
+        </div>
+        <div className="h-[435px] flex flex-col items-center justify-center text-muted-foreground">
+          <span className="material-icons text-6xl mb-4">show_chart</span>
+          <p>No alert data available</p>
+          <p className="text-xs mt-2">Alert trends will appear here once data is available</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-semibold text-lg">Alert Trends</h3>
-          <p className="text-xs text-muted-foreground mt-1">Weekly alert distribution over time</p>
+          <p className="text-xs text-muted-foreground mt-1">Weekly alert distribution from API data</p>
         </div>
         <div className="flex items-center gap-2">
           <button 
