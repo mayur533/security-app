@@ -16,8 +16,8 @@ const TileLayer = dynamic(
   { ssr: false }
 );
 
-const Polygon = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Polygon),
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
   { ssr: false }
 );
 
@@ -80,55 +80,24 @@ export function GeofencesMap() {
     }
   };
 
-  // Extract coordinates from polygon_json (GeoJSON format)
-  const getPolygonCoordinates = (polygonJson: any): [number, number][] => {
-    try {
-      if (polygonJson?.type === 'Polygon' && Array.isArray(polygonJson.coordinates)) {
-        // GeoJSON format is [lng, lat] but Leaflet needs [lat, lng]
-        const coords = polygonJson.coordinates[0] as number[][];
-        return coords.map((coord: number[]) => [coord[0], coord[1]] as [number, number]);
-      }
-      return [];
-    } catch (error) {
-      console.error('Error extracting coordinates:', error);
-      return [];
-    }
-  };
-
-  // Calculate map center from geofences
-  const getMapCenter = (): [number, number] => {
-    if (geofences.length === 0) return [40.7128, -74.0060]; // Default to NYC
-    
+  // Get marker position from geofence (use center_point)
+  const getMarkerPosition = (geofence: Geofence): [number, number] | null => {
     try {
       // Use center_point if available (it's an array [lat, lng])
-      if (Array.isArray(geofences[0].center_point) && geofences[0].center_point.length === 2) {
-        return [geofences[0].center_point[0], geofences[0].center_point[1]];
+      if (Array.isArray(geofence.center_point) && geofence.center_point.length === 2) {
+        return [geofence.center_point[0], geofence.center_point[1]];
       }
-      
-      // Calculate from first geofence polygon
-      const coords = getPolygonCoordinates(geofences[0].polygon_json);
-      if (coords.length > 0) {
-        const avgLat = coords.reduce((sum, coord) => sum + coord[0], 0) / coords.length;
-        const avgLng = coords.reduce((sum, coord) => sum + coord[1], 0) / coords.length;
-        if (!isNaN(avgLat) && !isNaN(avgLng)) {
-          return [avgLat, avgLng];
-        }
-      }
+      return null;
     } catch (error) {
-      console.error('Error calculating map center:', error);
+      console.error('Error getting marker position:', error);
+      return null;
     }
-    
-    return [40.7128, -74.0060]; // Fallback to NYC
   };
 
-  const mapCenter = loading ? [40.7128, -74.0060] as [number, number] : getMapCenter();
-
-  // Assign colors to geofences
-  const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
-  const geofencesWithColors = geofences.map((geo, index) => ({
-    ...geo,
-    color: colors[index % colors.length],
-  }));
+  // Calculate map center
+  const mapCenter: [number, number] = loading || geofences.length === 0
+    ? [40.7128, -74.0060] // NYC default
+    : (getMarkerPosition(geofences[0]) || [40.7128, -74.0060]);
 
   if (!isClient) {
     return (
@@ -194,36 +163,26 @@ export function GeofencesMap() {
               }
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
-            {geofencesWithColors.map((geofence) => {
-              const coordinates = getPolygonCoordinates(geofence.polygon_json);
-              if (coordinates.length === 0) return null;
+            {geofences.map((geofence) => {
+              const position = getMarkerPosition(geofence);
+              if (!position) return null;
 
               return (
-                <Polygon
-                  key={geofence.id}
-                  positions={coordinates}
-                  pathOptions={{
-                    color: geofence.color,
-                    fillColor: geofence.color,
-                    fillOpacity: 0.3,
-                    weight: 2,
-                  }}
-                >
+                <Marker key={geofence.id} position={position}>
                   <Popup>
-                    <div className="p-2">
-                      <p className="font-semibold text-sm">{geofence.name}</p>
+                    <div className="text-center">
+                      <span className="material-icons text-primary" style={{ fontSize: '20px' }}>
+                        location_on
+                      </span>
+                      <p className="text-sm font-medium mt-1">{geofence.name}</p>
                       {geofence.organization_name && (
                         <p className="text-xs text-muted-foreground mt-1">
                           {geofence.organization_name}
                         </p>
                       )}
-                      <div className="mt-2 flex items-center gap-1">
-                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: geofence.color }}></span>
-                        <span className="text-xs">Active Zone</span>
-                      </div>
                     </div>
                   </Popup>
-                </Polygon>
+                </Marker>
               );
             })}
           </MapContainer>
