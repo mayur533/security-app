@@ -18,6 +18,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
 import { useSearch } from '@/lib/contexts/search-context';
 import { CardLoading, TableLoading } from '@/components/ui/content-loading';
 import { notificationsService, type Notification } from '@/lib/services/notifications';
@@ -55,6 +73,8 @@ export function NotificationsContainer() {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewDetailsNotification, setViewDetailsNotification] = useState<Notification | null>(null);
+  const [deleteNotificationId, setDeleteNotificationId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchNotifications();
@@ -71,6 +91,30 @@ export function NotificationsContainer() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteNotificationId) return;
+    
+    try {
+      await notificationsService.delete(deleteNotificationId);
+      toast.success('Notification deleted successfully');
+      setDeleteNotificationId(null);
+      fetchNotifications(); // Refresh list
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast.error(error.message || 'Failed to delete notification');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   // Filter by type and sent status
@@ -515,12 +559,16 @@ export function NotificationsContainer() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem className="cursor-pointer">
+                      <DropdownMenuItem 
+                        className="cursor-pointer"
+                        onClick={() => setViewDetailsNotification(notification)}
+                      >
                         <span className="material-icons text-sm mr-2">visibility</span>
                         View Details
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="cursor-pointer text-red-600 focus:text-red-600"
+                        onClick={() => setDeleteNotificationId(notification.id)}
                       >
                         <span className="material-icons text-sm mr-2">delete</span>
                         Delete
@@ -548,6 +596,155 @@ export function NotificationsContainer() {
           Page {currentPage} of {totalPages} • Sorted by: {sortField} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
         </p>
       </div>
+
+      {/* View Details Modal */}
+      {viewDetailsNotification && (
+        <Dialog open={!!viewDetailsNotification} onOpenChange={() => setViewDetailsNotification(null)}>
+          <DialogContent className="sm:max-w-[700px] bg-card/95 backdrop-blur-xl border-border/50 p-4">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="material-icons text-indigo-600 mr-2">
+                  notifications_active
+                </span>
+                Notification Details
+              </DialogTitle>
+              <DialogDescription>
+                Complete information about this notification
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 mt-3">
+              {/* Notification Header */}
+              <div className="space-y-2 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">{viewDetailsNotification.title}</h3>
+                  {getStatusBadge(viewDetailsNotification.notification_type)}
+                </div>
+                <p className="text-sm text-muted-foreground">{viewDetailsNotification.message}</p>
+              </div>
+
+              {/* Notification Info Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Type */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Notification Type</Label>
+                  <div>{getStatusBadge(viewDetailsNotification.notification_type)}</div>
+                </div>
+
+                {/* Status */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Send Status</Label>
+                  <div>
+                    <Badge variant={viewDetailsNotification.is_sent ? "default" : "outline"}>
+                      {viewDetailsNotification.is_sent ? 'Sent' : 'Draft'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Target Geofence */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Target Geofence</Label>
+                  <p className="text-base font-medium flex items-center gap-1">
+                    <span className="material-icons text-sm text-indigo-600">location_on</span>
+                    {viewDetailsNotification.target_geofence_name || 'All Geofences'}
+                  </p>
+                </div>
+
+                {/* Organization */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Organization</Label>
+                  <p className="text-base font-medium flex items-center gap-1">
+                    <span className="material-icons text-sm text-indigo-600">business</span>
+                    {viewDetailsNotification.organization_name || 'N/A'}
+                  </p>
+                </div>
+
+                {/* Target Type */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Target Type</Label>
+                  <p className="text-base font-medium">{viewDetailsNotification.target_type}</p>
+                </div>
+
+                {/* Created By */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Created By</Label>
+                  <p className="text-base font-medium">{viewDetailsNotification.created_by_username || 'System'}</p>
+                </div>
+
+                {/* Created At */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                  <p className="text-base font-medium">{formatDate(viewDetailsNotification.created_at)}</p>
+                </div>
+
+                {/* Sent At */}
+                {viewDetailsNotification.sent_at && (
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Sent At</Label>
+                    <p className="text-base font-medium">{formatDate(viewDetailsNotification.sent_at)}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Target Officers */}
+              {viewDetailsNotification.target_officers && viewDetailsNotification.target_officers.length > 0 && (
+                <div className="space-y-1 pt-2 border-t">
+                  <Label className="text-sm font-medium text-muted-foreground">Target Officers</Label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {viewDetailsNotification.target_officers_names?.map((name, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notification ID */}
+              <div className="space-y-1 pt-2 border-t">
+                <Label className="text-sm font-medium text-muted-foreground">Notification ID</Label>
+                <p className="text-base font-mono text-sm">{viewDetailsNotification.id}</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-3 border-t mt-3">
+              <Button
+                variant="outline"
+                onClick={() => setViewDetailsNotification(null)}
+              >
+                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteNotificationId} onOpenChange={() => setDeleteNotificationId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="material-icons text-red-600">warning</span>
+              Delete Notification
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this notification? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>delete</span>
+              Delete Notification
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
