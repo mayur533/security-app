@@ -162,25 +162,23 @@ export default function SecurityOfficersPage() {
         toast.success('Officer updated successfully');
       } else {
         // Create new officer
-        const createData: any = {
+        await officersService.create({
           officer_id: `OFF-${Date.now()}`, // Auto-generate officer ID
           name: formData.name,
           contact: formData.contact,
           password: 'officer123', // Default password
-        };
-        
-        if (formData.email) createData.email = formData.email;
-        if (formData.assigned_geofence) createData.assigned_geofence = parseInt(formData.assigned_geofence);
-        
-        await officersService.create(createData);
+          email: formData.email || undefined,
+          assigned_geofence: formData.assigned_geofence ? parseInt(formData.assigned_geofence) : undefined,
+        });
         toast.success('Officer created successfully');
       }
       
       setIsModalOpen(false);
       fetchOfficers(); // Refresh list
-    } catch (error: any) {
+    } catch (error) {
       console.error('Submit error:', error);
-      toast.error(error.message || 'Failed to save officer');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save officer';
+      toast.error(errorMessage);
     }
   };
 
