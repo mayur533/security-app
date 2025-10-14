@@ -6,10 +6,13 @@ export interface Geofence {
   description?: string;
   polygon_json: object;
   organization: number;
+  organization_name?: string;
   active: boolean;
   created_by?: number;
+  created_by_username?: string;
   created_at: string;
   updated_at: string;
+  center_point?: [number, number];
 }
 
 export interface GeofenceCreateData {

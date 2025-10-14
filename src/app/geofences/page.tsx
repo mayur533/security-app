@@ -1,25 +1,35 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { GeofencesMap } from '@/components/geofences/geofences-map';
 import { GeofencesSidebar } from '@/components/geofences/geofences-sidebar';
-import { GeofencesStats } from '@/components/geofences/geofences-stats';
-import { CreateGeofenceModal } from '@/components/geofences/create-geofence-modal';
-import { Button } from '@/components/ui/button';
 import { ContentLoading } from '@/components/ui/content-loading';
+import { geofencesService, type Geofence } from '@/lib/services/geofences';
 
 export default function GeofencesPage() {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedGeofence, setSelectedGeofence] = useState<string | null>(null);
+  const [selectedGeofence, setSelectedGeofence] = useState<number | null>(null);
+  const [geofences, setGeofences] = useState<Geofence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate initial data loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    fetchGeofences();
   }, []);
+
+  const fetchGeofences = async () => {
+    try {
+      setIsLoading(true);
+      const data = await geofencesService.getAll();
+      setGeofences(data);
+    } catch (error: any) {
+      console.error('Error fetching geofences:', error);
+      toast.error('Failed to load geofences');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const selectedGeo = geofences.find(g => g.id === selectedGeofence);
 
   if (isLoading) {
     return (
@@ -28,12 +38,16 @@ export default function GeofencesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Geofence Overview</h1>
-            <p className="text-muted-foreground mt-1">Manage and monitor security zones</p>
+            <p className="text-muted-foreground mt-1">Monitor security zones across organizations</p>
           </div>
         </div>
 
         {/* Stats Loading */}
-        <GeofencesStats isLoading={true} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-muted/60 rounded-lg animate-pulse"></div>
+          ))}
+        </div>
 
         {/* Map and Sidebar Loading */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -61,19 +75,52 @@ export default function GeofencesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Geofence Overview</h1>
-          <p className="text-muted-foreground mt-1">Manage and monitor security zones</p>
+          <p className="text-muted-foreground mt-1">Monitor all security zones across organizations (View Only)</p>
         </div>
-        <Button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <span className="material-icons text-xl mr-2">add_location</span>
-          Create Geofence
-        </Button>
       </div>
 
       {/* Stats Cards */}
-      <GeofencesStats isLoading={false} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 rounded-lg shadow-lg text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-indigo-100">Total Geofences</p>
+              <h3 className="text-2xl font-bold mt-1">{geofences.length}</h3>
+            </div>
+            <span className="material-icons opacity-80" style={{ fontSize: '36px' }}>
+              map
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-lg shadow-lg text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-green-100">Active Zones</p>
+              <h3 className="text-2xl font-bold mt-1">
+                {geofences.filter(g => g.active).length}
+              </h3>
+            </div>
+            <span className="material-icons opacity-80" style={{ fontSize: '36px' }}>
+              check_circle
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-gray-500 to-gray-600 p-4 rounded-lg shadow-lg text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-100">Inactive Zones</p>
+              <h3 className="text-2xl font-bold mt-1">
+                {geofences.filter(g => !g.active).length}
+              </h3>
+            </div>
+            <span className="material-icons opacity-80" style={{ fontSize: '36px' }}>
+              block
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Map and Sidebar Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -81,6 +128,7 @@ export default function GeofencesPage() {
         <div className="lg:col-span-3">
           <GeofencesMap
             selectedGeofence={selectedGeofence}
+            geofences={geofences}
             onSelectGeofence={setSelectedGeofence}
           />
         </div>
@@ -90,16 +138,11 @@ export default function GeofencesPage() {
           <GeofencesSidebar
             selectedGeofence={selectedGeofence}
             onSelectGeofence={setSelectedGeofence}
+            geofences={geofences}
+            onRefresh={fetchGeofences}
           />
         </div>
       </div>
-
-      {/* Create Geofence Modal */}
-      <CreateGeofenceModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
     </div>
   );
 }
-
