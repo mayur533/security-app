@@ -104,23 +104,11 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
   const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   return (
-    <div className={`relative bg-card rounded-lg shadow-md border overflow-hidden ${
-      isFullscreen ? 'fixed inset-0 z-50' : ''
+    <div className={`relative ${
+      isFullscreen 
+        ? 'fixed inset-0 z-[999] bg-card' 
+        : 'bg-card rounded-lg shadow-md border overflow-hidden'
     }`} style={{ height: isFullscreen ? '100vh' : '600px' }}>
-      {/* Map Controls */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-        <Button
-          onClick={toggleFullscreen}
-          size="sm"
-          variant="secondary"
-          className="shadow-lg"
-        >
-          <span className="material-icons text-sm">
-            {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
-          </span>
-        </Button>
-      </div>
-
       {/* Map */}
       <MapContainer
         center={defaultCenter}
@@ -176,8 +164,26 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
         })}
       </MapContainer>
 
+      {/* Fullscreen Button - Inside Map Container */}
+      <Button
+        onClick={toggleFullscreen}
+        size="sm"
+        variant="secondary"
+        className={`absolute shadow-lg ${
+          isFullscreen 
+            ? 'top-4 right-4 z-[1000]' 
+            : 'top-4 right-4 z-10'
+        }`}
+      >
+        <span className="material-icons text-sm">
+          {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+        </span>
+      </Button>
+
       {/* Legend - Clickable (Show All) */}
-      <div className="absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-border/50 z-10 max-w-xs">
+      <div className={`absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-border/50 max-w-xs ${
+        isFullscreen ? 'z-[1000]' : 'z-10'
+      }`}>
         <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
           <span className="material-icons" style={{ fontSize: '14px' }}>layers</span>
           Active Geofences (Click to zoom)
