@@ -164,6 +164,8 @@ export default function IncidentLogsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('all');
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [viewDetailsIncident, setViewDetailsIncident] = useState<Incident | null>(null);
+  const [deleteIncidentId, setDeleteIncidentId] = useState<number | null>(null);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showPerPageMenu, setShowPerPageMenu] = useState(false);
@@ -281,6 +283,31 @@ export default function IncidentLogsPage() {
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteIncidentId) return;
+    
+    try {
+      await incidentsService.delete(deleteIncidentId);
+      toast.success('Incident deleted successfully');
+      setDeleteIncidentId(null);
+      fetchIncidents(); // Refresh list
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast.error(error.message || 'Failed to delete incident');
+    }
+  };
+
+  const handleResolve = async (id: number) => {
+    try {
+      await incidentsService.resolve(id, { notes: 'Resolved from admin panel' });
+      toast.success('Incident marked as resolved');
+      fetchIncidents(); // Refresh list
+    } catch (error: any) {
+      console.error('Resolve error:', error);
+      toast.error(error.message || 'Failed to resolve incident');
+    }
   };
 
   if (isLoading) {
@@ -797,16 +824,24 @@ export default function IncidentLogsPage() {
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem
                             className="cursor-pointer"
-                            onClick={() => setSelectedIncident(incident)}
+                            onClick={() => setViewDetailsIncident(incident)}
                           >
                             <span className="material-icons text-sm mr-2">visibility</span>
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            <span className="material-icons text-sm mr-2">edit</span>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600">
+                          {!incident.is_resolved && (
+                            <DropdownMenuItem
+                              className="cursor-pointer text-green-600 focus:text-green-600"
+                              onClick={() => handleResolve(incident.id)}
+                            >
+                              <span className="material-icons text-sm mr-2">check_circle</span>
+                              Mark as Resolved
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem 
+                            className="cursor-pointer text-red-600 focus:text-red-600"
+                            onClick={() => setDeleteIncidentId(incident.id)}
+                          >
                             <span className="material-icons text-sm mr-2">delete</span>
                             Delete
                           </DropdownMenuItem>
@@ -837,91 +872,156 @@ export default function IncidentLogsPage() {
       </div>
 
       {/* View Details Modal */}
-      {selectedIncident && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-card rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">Incident Details</h2>
-                <button
-                  onClick={() => setSelectedIncident(null)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <span className="material-icons-outlined">close</span>
-                </button>
-              </div>
-            </div>
+      {viewDetailsIncident && (
+        <Dialog open={!!viewDetailsIncident} onOpenChange={() => setViewDetailsIncident(null)}>
+          <DialogContent className="sm:max-w-[700px] bg-card/95 backdrop-blur-xl border-border/50 p-4">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="material-icons text-indigo-600 mr-2">
+                  report_problem
+                </span>
+                Incident Details
+              </DialogTitle>
+              <DialogDescription>
+                Complete information about this incident
+              </DialogDescription>
+            </DialogHeader>
 
-            <div className="p-6 space-y-4">
+            <div className="space-y-3 mt-3">
+              {/* Incident Header */}
+              <div className="space-y-2 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">{viewDetailsIncident.title}</h3>
+                  {getStatusBadge(viewDetailsIncident)}
+                </div>
+                <p className="text-sm text-muted-foreground">{viewDetailsIncident.details}</p>
+              </div>
+
+              {/* Incident Info Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Incident ID</label>
-                  <p className="text-lg font-mono">{selectedIncident.incidentId}</p>
+                {/* Incident ID */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Incident ID</Label>
+                  <p className="text-base font-mono">INC-{viewDetailsIncident.id}</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Type</label>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(selectedIncident.type)}`}>
-                    <span className="material-icons-outlined mr-1" style={{ fontSize: '14px' }}>
-                      {getTypeIcon(selectedIncident.type)}
-                    </span>
-                    {selectedIncident.type}
-                  </span>
+
+                {/* Type */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Type</Label>
+                  <Badge variant="outline" className="text-xs">
+                    {viewDetailsIncident.incident_type.replace(/_/g, ' ')}
+                  </Badge>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Status</label>
-                  {getStatusBadge(selectedIncident.status)}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Priority</label>
-                  <p className={`text-lg font-semibold ${
-                    selectedIncident.priority === 'critical' ? 'text-red-600' :
-                    selectedIncident.priority === 'high' ? 'text-orange-600' :
-                    selectedIncident.priority === 'medium' ? 'text-yellow-600' : 'text-green-600'
+
+                {/* Severity */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Severity</Label>
+                  <Badge className={`text-xs ${
+                    viewDetailsIncident.severity === 'HIGH' ? 'bg-red-100 text-red-800 border-red-200' :
+                    viewDetailsIncident.severity === 'MEDIUM' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                    'bg-green-100 text-green-800 border-green-200'
                   }`}>
-                    {selectedIncident.priority.toUpperCase()}
+                    {viewDetailsIncident.severity}
+                  </Badge>
+                </div>
+
+                {/* Status */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <div>{getStatusBadge(viewDetailsIncident)}</div>
+                </div>
+
+                {/* Geofence */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Geofence</Label>
+                  <p className="text-base font-medium flex items-center gap-1">
+                    <span className="material-icons text-sm text-indigo-600">location_on</span>
+                    {viewDetailsIncident.geofence_name || `Geofence #${viewDetailsIncident.geofence}`}
                   </p>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Title</label>
-                <p className="text-lg">{selectedIncident.title}</p>
-              </div>
+                {/* Officer */}
+                {viewDetailsIncident.officer && (
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Assigned Officer</Label>
+                    <p className="text-base font-medium">{viewDetailsIncident.officer_name || `Officer #${viewDetailsIncident.officer}`}</p>
+                  </div>
+                )}
 
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Description</label>
-                <p>{selectedIncident.description}</p>
-              </div>
+                {/* Created At */}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Reported</Label>
+                  <p className="text-base font-medium">{formatDate(viewDetailsIncident.created_at)} at {formatTime(viewDetailsIncident.created_at)}</p>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Geofence</label>
-                  <p>{selectedIncident.geofence}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Reported By</label>
-                  <p>{selectedIncident.reportedBy}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Assigned Officer</label>
-                  <p>{selectedIncident.assignedOfficer}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Timestamp</label>
-                  <p>{formatDate(selectedIncident.timestamp)} {formatTime(selectedIncident.timestamp)}</p>
-                </div>
-              </div>
+                {/* Resolved At */}
+                {viewDetailsIncident.resolved_at && (
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Resolved</Label>
+                    <p className="text-base font-medium text-green-600">{formatDate(viewDetailsIncident.resolved_at)} at {formatTime(viewDetailsIncident.resolved_at)}</p>
+                  </div>
+                )}
 
-              {selectedIncident.resolvedAt && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <label className="block text-sm font-medium text-green-800 mb-1">Resolved At</label>
-                  <p className="text-green-900">{formatDate(selectedIncident.resolvedAt)} {formatTime(selectedIncident.resolvedAt)}</p>
-                </div>
+                {/* Resolved By */}
+                {viewDetailsIncident.resolved_by_username && (
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Resolved By</Label>
+                    <p className="text-base font-medium">{viewDetailsIncident.resolved_by_username}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-3 border-t mt-3">
+              <Button
+                variant="outline"
+                onClick={() => setViewDetailsIncident(null)}
+              >
+                <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>close</span>
+                Close
+              </Button>
+              {!viewDetailsIncident.is_resolved && (
+                <Button
+                  onClick={() => {
+                    handleResolve(viewDetailsIncident.id);
+                    setViewDetailsIncident(null);
+                  }}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                >
+                  <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>check_circle</span>
+                  Mark as Resolved
+                </Button>
               )}
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteIncidentId} onOpenChange={() => setDeleteIncidentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="material-icons text-red-600">warning</span>
+              Delete Incident
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this incident? This action cannot be undone and will permanently remove all incident data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              <span className="material-icons text-sm mr-2" style={{ lineHeight: '0', verticalAlign: 'baseline', marginBottom: '-2px' }}>delete</span>
+              Delete Incident
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
