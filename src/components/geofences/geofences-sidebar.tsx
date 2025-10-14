@@ -595,26 +595,26 @@ export function GeofencesSidebar({ selectedGeofence, onSelectGeofence, geofences
               <span className="material-icons">warning</span>
               Delete Geofence
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>
-                Are you sure you want to delete{' '}
-                <strong className="text-foreground">"{deleteGeofence?.name}"</strong>?
-              </p>
-              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                <div className="flex gap-2">
-                  <span className="material-icons text-red-600 text-sm">info</span>
-                  <div className="flex-1">
-                    <p className="text-xs text-red-900 dark:text-red-100 font-medium">
-                      This action cannot be undone
-                    </p>
-                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">
-                      All data associated with this geofence will be permanently removed.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <AlertDialogDescription>
+              Are you sure you want to delete{' '}
+              <strong className="text-foreground">"{deleteGeofence?.name}"</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-3 px-6">
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <div className="flex gap-2">
+                <span className="material-icons text-red-600 text-sm">info</span>
+                <div className="flex-1">
+                  <p className="text-xs text-red-900 dark:text-red-100 font-medium">
+                    This action cannot be undone
+                  </p>
+                  <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                    All data associated with this geofence will be permanently removed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>
               Cancel
