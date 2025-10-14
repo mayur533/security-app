@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -9,7 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { useSearch } from '@/lib/contexts/search-context';
+import { alertsService, Alert } from '@/lib/services/alerts';
+import { TableLoading } from '@/components/ui/content-loading';
+import { toast } from 'sonner';
 
 interface AlertLog {
   id: string;
@@ -21,7 +25,7 @@ interface AlertLog {
   responseTime: string;
 }
 
-const alertLogs: AlertLog[] = [
+const mockAlertLogs: AlertLog[] = [
   {
     id: '1',
     timestamp: '2024-02-15 14:32:15',
@@ -122,6 +126,37 @@ export function RecentLogsTable() {
   const [filterType, setFilterType] = useState<'all' | AlertLog['type']>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | AlertLog['status']>('all');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAlerts();
+  }, []);
+
+  const fetchAlerts = async () => {
+    try {
+      setLoading(true);
+      const data = await alertsService.getAll();
+      setAlerts(data);
+    } catch (error) {
+      console.error('Error fetching alerts:', error);
+      // Use mock data as fallback if API fails
+      toast.error('Using sample data - API unavailable');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use real alerts if available, otherwise use mock data
+  const alertLogs = alerts.length > 0 ? alerts.map(alert => ({
+    id: alert.id.toString(),
+    timestamp: new Date(alert.created_at).toLocaleString(),
+    type: (alert.alert_type || 'System') as AlertLog['type'],
+    location: alert.location || alert.geofence_name || 'N/A',
+    user: alert.user_username || 'System',
+    status: (alert.is_resolved ? 'resolved' : alert.severity === 'critical' ? 'critical' : 'pending') as AlertLog['status'],
+    responseTime: alert.response_time ? `${alert.response_time} min` : 'N/A',
+  })) : mockAlertLogs;
 
   // Filter
   let filteredLogs = alertLogs.filter((log) =>
@@ -172,12 +207,26 @@ export function RecentLogsTable() {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg">Recent Alert Logs</h3>
+          <p className="text-xs text-muted-foreground mt-1">Detailed alert history and metrics</p>
+        </div>
+        <TableLoading rows={10} columns={6} />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-semibold text-lg">Recent Alert Logs</h3>
-          <p className="text-xs text-muted-foreground mt-1">Detailed alert history and metrics</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {alerts.length > 0 ? 'Real-time alert data from API' : 'Detailed alert history and metrics (Sample Data)'}
+          </p>
         </div>
         
         <div className="flex items-center gap-3">
