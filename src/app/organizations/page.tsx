@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -48,12 +47,11 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { organizationsService, Organization, OrganizationCreateData } from '@/lib/services/organizations';
-import { ContentLoading, CardLoading } from '@/components/ui/content-loading';
+import { ContentLoading, CardLoading, TableLoading } from '@/components/ui/content-loading';
 
 export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -165,14 +163,8 @@ export default function OrganizationsPage() {
     });
   };
 
-  // Filter and sort
-  let filteredOrgs = organizations.filter((org) =>
-    org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    org.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   // Sort
-  filteredOrgs = [...filteredOrgs].sort((a, b) => {
+  let sortedOrgs = [...organizations].sort((a, b) => {
     switch (sortBy) {
       case 'name':
         return a.name.localeCompare(b.name);
@@ -183,138 +175,137 @@ export default function OrganizationsPage() {
   });
 
   // Pagination
-  const totalPages = Math.ceil(filteredOrgs.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedOrgs.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedOrgs = filteredOrgs.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedOrgs = sortedOrgs.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Organizations
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage security organizations and divisions
-          </p>
+          <h1 className="text-3xl font-bold">Organizations</h1>
+          <p className="text-muted-foreground mt-1">Manage security organizations and divisions</p>
         </div>
         <Button
           onClick={() => {
             setFormData({ name: '', description: '' });
             setIsAddModalOpen(true);
           }}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
         >
-          <span className="material-icons text-sm mr-2">add</span>
+          <span className="material-icons text-xl mr-2">add</span>
           Add Organization
         </Button>
       </div>
 
       {/* Stats Cards */}
       {loading ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          <CardLoading count={3} />
-        </div>
+        <CardLoading count={3} />
       ) : (
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Organizations</p>
-                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300 mt-2">{organizations.length}</p>
+                <p className="text-sm text-indigo-100">Total Organizations</p>
+                <h3 className="text-2xl font-bold mt-1">{organizations.length}</h3>
               </div>
-              <div className="h-12 w-12 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center">
-                <span className="material-icons text-white text-2xl">business</span>
-              </div>
+              <span className="material-icons-outlined opacity-80" style={{ fontSize: '36px' }}>
+                business
+              </span>
             </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800">
+          </div>
+          
+          <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active This Month</p>
-                <p className="text-3xl font-bold text-green-700 dark:text-green-300 mt-2">
+                <p className="text-sm text-green-100">Active This Month</p>
+                <h3 className="text-2xl font-bold mt-1">
                   {organizations.filter(org => {
                     const createdDate = new Date(org.created_at);
                     const now = new Date();
                     return createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear();
                   }).length}
-                </p>
+                </h3>
               </div>
-              <div className="h-12 w-12 rounded-full bg-green-600 dark:bg-green-500 flex items-center justify-center">
-                <span className="material-icons text-white text-2xl">trending_up</span>
-              </div>
+              <span className="material-icons-outlined opacity-80" style={{ fontSize: '36px' }}>
+                trending_up
+              </span>
             </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-purple-200 dark:border-purple-800">
+          </div>
+          
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Recently Added</p>
-                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300 mt-2">
+                <p className="text-sm text-purple-100">Recently Added</p>
+                <h3 className="text-2xl font-bold mt-1">
                   {organizations.filter(org => {
                     const createdDate = new Date(org.created_at);
                     const weekAgo = new Date();
                     weekAgo.setDate(weekAgo.getDate() - 7);
                     return createdDate >= weekAgo;
                   }).length}
-                </p>
+                </h3>
               </div>
-              <div className="h-12 w-12 rounded-full bg-purple-600 dark:bg-purple-500 flex items-center justify-center">
-                <span className="material-icons text-white text-2xl">schedule</span>
-              </div>
+              <span className="material-icons-outlined opacity-80" style={{ fontSize: '36px' }}>
+                schedule
+              </span>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
       {/* Table Card */}
-      <Card className="p-6">
-        {loading ? (
-          <ContentLoading />
-        ) : (
+      {loading ? (
+        <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
+          {/* Controls Loading */}
+          <div className="flex items-center justify-end gap-3 mb-6 animate-pulse">
+            <div className="h-10 w-32 bg-muted rounded-lg"></div>
+            <div className="h-10 w-24 bg-muted rounded-lg"></div>
+          </div>
+
+          {/* Table Loading */}
+          <TableLoading rows={itemsPerPage} columns={4} />
+
+          {/* Pagination Info Loading */}
+          <div className="mt-4 flex items-center justify-between animate-pulse">
+            <div className="h-4 w-48 bg-muted rounded"></div>
+            <div className="h-4 w-32 bg-muted rounded"></div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-card/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-border/50">
           <>
-            {/* Controls */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex-1 max-w-sm">
-                <div className="relative">
-                  <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xl">
-                    search
-                  </span>
-                  <Input
-                    placeholder="Search organizations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
+            {/* Controls - Right Aligned */}
+            <div className="flex items-center justify-end gap-3 mb-6">
+              {/* Sort Dropdown */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[160px]">
+                  <span className="material-icons text-sm mr-2">sort</span>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date">Date Created</SelectItem>
+                  <SelectItem value="name">Name</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <div className="flex items-center gap-2">
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[140px]">
-                    <span className="material-icons text-sm mr-2">sort</span>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date">Date Created</SelectItem>
-                    <SelectItem value="name">Name</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10 / page</SelectItem>
-                    <SelectItem value="25">25 / page</SelectItem>
-                    <SelectItem value="50">50 / page</SelectItem>
-                    <SelectItem value="100">100 / page</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Pagination Dropdown */}
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}>
+                <SelectTrigger className="w-[130px]">
+                  <span className="material-icons text-sm mr-2">apps</span>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 / page</SelectItem>
+                  <SelectItem value="25">25 / page</SelectItem>
+                  <SelectItem value="50">50 / page</SelectItem>
+                  <SelectItem value="100">100 / page</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Table */}
@@ -388,37 +379,17 @@ export default function OrganizationsPage() {
               </Table>
             </div>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredOrgs.length)} of{' '}
-                {filteredOrgs.length} organizations
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <span className="material-icons text-sm">chevron_left</span>
-                </Button>
-                <div className="text-sm">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  <span className="material-icons text-sm">chevron_right</span>
-                </Button>
-              </div>
+            {/* Pagination Info */}
+            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, sortedOrgs.length)} of{' '}
+                {sortedOrgs.length} organizations
+              </span>
+              <span>Page {currentPage} of {totalPages || 1}</span>
             </div>
           </>
-        )}
-      </Card>
+        </div>
+      )}
 
       {/* Add Organization Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
