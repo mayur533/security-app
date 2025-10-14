@@ -115,28 +115,26 @@ export function GeofencesMap() {
       isFullscreen ? 'fixed inset-0 z-50 rounded-none p-0' : ''
     }`}>
       {/* Map Header - Compact */}
-      <div className={`flex items-center justify-between mb-2 ${
-        isFullscreen ? 'absolute top-2 left-2 right-2 z-[1000]' : ''
-      }`}>
-        {!isFullscreen && (
+      {!isFullscreen && (
+        <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold text-sm">Geofences Overview</h3>
-        )}
-        
-        {/* Fullscreen Toggle */}
-        <button
-          onClick={() => setIsFullscreen(!isFullscreen)}
-          className={`p-1.5 transition-colors flex items-center justify-center ${
-            isFullscreen 
-              ? 'bg-card/80 backdrop-blur-sm hover:bg-card rounded-lg shadow-lg border border-border/50'
-              : 'hover:bg-muted rounded'
-          }`}
-          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-        >
-          <span className="material-icons text-base text-muted-foreground hover:text-foreground">
-            {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
-          </span>
-        </button>
-      </div>
+        </div>
+      )}
+      
+      {/* Fullscreen Toggle - Always Top Right */}
+      <button
+        onClick={() => setIsFullscreen(!isFullscreen)}
+        className={`transition-colors flex items-center justify-center ${
+          isFullscreen 
+            ? 'absolute top-4 right-4 z-[1000] p-2 bg-card/80 backdrop-blur-sm hover:bg-card rounded-lg shadow-lg border border-border/50'
+            : 'absolute top-2 right-2 z-10 p-1.5 hover:bg-muted rounded'
+        }`}
+        title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+      >
+        <span className="material-icons text-base text-muted-foreground hover:text-foreground">
+          {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+        </span>
+      </button>
       
       <div 
         className={`relative overflow-hidden ${
