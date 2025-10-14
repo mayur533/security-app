@@ -43,6 +43,18 @@ export function GeofencesMap() {
   const [geofences, setGeofences] = useState<Geofence[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Handle body overflow when fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFullscreen]);
+
   useEffect(() => {
     setIsClient(true);
     fetchGeofences();
@@ -111,14 +123,14 @@ export function GeofencesMap() {
   }
 
   return (
-    <div className={`lg:col-span-2 ${
+    <div className={`${
       isFullscreen 
-        ? 'fixed inset-0 z-[999] bg-card' 
-        : 'bg-card pt-2 pb-6 px-6 rounded-lg shadow-md border overflow-hidden relative'
+        ? 'fixed inset-0 z-[999] bg-card flex flex-col' 
+        : 'lg:col-span-2 bg-card pt-2 pb-6 px-6 rounded-lg shadow-md border overflow-hidden relative'
     }`}>
       {/* Map Header - Compact */}
-      <div className={`flex items-center justify-between mb-2 ${
-        isFullscreen ? 'px-6 pt-4' : ''
+      <div className={`flex items-center justify-between ${
+        isFullscreen ? 'px-6 py-4 border-b border-border flex-shrink-0' : 'mb-2'
       }`}>
         <h3 className="font-semibold text-sm">Geofences Overview</h3>
         
@@ -136,9 +148,8 @@ export function GeofencesMap() {
       
       <div 
         className={`relative overflow-hidden ${
-          isFullscreen ? 'h-screen' : 'h-96 rounded-md'
+          isFullscreen ? 'flex-1' : 'h-96 rounded-md'
         }`}
-        style={isFullscreen ? { height: 'calc(100vh - 60px)' } : {}}
       >
 
         {loading ? (

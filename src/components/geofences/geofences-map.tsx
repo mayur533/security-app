@@ -65,6 +65,18 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
     setIsClient(true);
   }, []);
 
+  // Handle body overflow when fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFullscreen]);
+
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
@@ -107,11 +119,13 @@ export function GeofencesMap({ selectedGeofence, geofences, onSelectGeofence }: 
     <>
       <div className={`${
         isFullscreen 
-          ? 'fixed inset-0 z-[999]' 
+          ? 'fixed inset-0 z-[999] bg-card' 
           : 'relative bg-card rounded-lg shadow-md border overflow-hidden'
       }`} style={{ 
         height: isFullscreen ? '100vh' : '600px',
-        width: isFullscreen ? '100vw' : '100%'
+        width: isFullscreen ? '100vw' : '100%',
+        margin: 0,
+        padding: 0
       }}>
       {/* Map */}
       <MapContainer
