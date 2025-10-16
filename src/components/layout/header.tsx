@@ -15,6 +15,7 @@ import { NotificationDropdown } from './notification-dropdown';
 import { useSearch } from '@/lib/contexts/search-context';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { toast } from 'sonner';
+import { Search, Notifications, Person, Settings, Logout, ExpandMore } from '@mui/icons-material';
 
 const searchPlaceholders: Record<string, string> = {
   '/': 'Search dashboard...',
@@ -66,9 +67,7 @@ export function Header() {
         {/* Search */}
         <div className="flex-1 max-w-lg">
           <div className="relative">
-            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-              search
-            </span>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <input
               type="text"
               placeholder={placeholder}
@@ -111,9 +110,7 @@ export function Header() {
                     ) : 'SafeTNet Admin'}
                   </p>
                 </div>
-                <span className="material-icons-outlined text-muted-foreground">
-                  expand_more
-                </span>
+                <ExpandMore className="text-muted-foreground w-4 h-4" />
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -121,19 +118,19 @@ export function Header() {
                 className="cursor-pointer"
                 onClick={() => router.push('/profile')}
               >
-                <span className="material-icons-outlined text-sm mr-2">person</span>
+                <Person className="w-4 h-4 mr-2" />
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer"
                 onClick={() => router.push('/settings')}
               >
-                <span className="material-icons-outlined text-sm mr-2">settings</span>
+                <Settings className="w-4 h-4 mr-2" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
-                <span className="material-icons-outlined text-sm mr-2">logout</span>
+                <Logout className="w-4 h-4 mr-2" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

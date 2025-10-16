@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { notificationsService } from '@/lib/services/notifications';
+import { Notifications, NotificationsOff, Info, Warning, CheckCircle, Error } from '@mui/icons-material';
 
 interface Notification {
   id: string;
@@ -58,14 +59,14 @@ const sampleNotifications: Notification[] = [
 const getNotificationIcon = (type: Notification['type']) => {
   switch (type) {
     case 'error':
-      return 'warning';
+      return <Error className="w-4 h-4" />;
     case 'success':
-      return 'check_circle';
+      return <CheckCircle className="w-4 h-4" />;
     case 'warning':
-      return 'info';
+      return <Warning className="w-4 h-4" />;
     case 'info':
     default:
-      return 'notifications';
+      return <Info className="w-4 h-4" />;
   }
 };
 
@@ -165,7 +166,7 @@ export function NotificationDropdown({ onViewAll, onClose }: NotificationDropdow
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="relative">
-          <span className="material-icons-outlined">notifications</span>
+          <Notifications className="w-5 h-5" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 bg-red-500 text-white text-xs flex items-center justify-center">
               {unreadCount}
@@ -198,7 +199,7 @@ export function NotificationDropdown({ onViewAll, onClose }: NotificationDropdow
             </div>
           ) : notifications.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
-              <span className="material-icons text-4xl mb-2">notifications_off</span>
+              <NotificationsOff className="w-10 h-10 mb-2" />
               <p className="text-sm">No notifications</p>
             </div>
           ) : (
@@ -215,9 +216,9 @@ export function NotificationDropdown({ onViewAll, onClose }: NotificationDropdow
                 }`}
               >
                 <div className="flex items-start space-x-3">
-                  <span className={`material-icons-outlined text-sm mt-0.5 ${getNotificationColor(notification.type)}`}>
+                  <div className={`mt-0.5 ${getNotificationColor(notification.type)}`}>
                     {getNotificationIcon(notification.type)}
-                  </span>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{notification.title}</p>
                     <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>

@@ -227,3 +227,6 @@ After this, Super Admin will have:
 - View-only for: Geofences, Notifications (sent by others)
 - Full control of: Users, Sub-Admins, Organizations, Incidents, Alerts, Reports, Promocodes
 
+
+
+

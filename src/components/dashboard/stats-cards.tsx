@@ -56,8 +56,8 @@ export function StatsCards() {
             className={`bg-gradient-to-br ${stat.gradient} p-4 rounded-lg shadow-lg text-white`}
           >
             <div className="flex justify-between items-start">
-              <h3 className="font-semibold text-sm">{stat.title}</h3>
-              <span className="material-icons-outlined bg-white/20 p-1.5 rounded-lg text-xl">
+              <h3 className="font-semibold">{stat.title}</h3>
+              <span className="material-icons-outlined bg-white/20 p-2 rounded-lg">
                 {stat.icon}
               </span>
             </div>

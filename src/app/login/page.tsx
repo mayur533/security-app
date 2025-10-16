@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { authService } from '@/lib/services/auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { toast } from 'sonner';
+import { Security, Person, Lock, Error, Refresh, Login, VerifiedUser } from '@mui/icons-material';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -79,9 +80,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-xl mb-4">
-              <span className="material-icons text-white" style={{ fontSize: '40px' }}>
-                security
-              </span>
+              <Security className="text-white w-10 h-10" />
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-blue-400 bg-clip-text text-transparent">
               SafeTNet Admin
@@ -97,9 +96,7 @@ export default function LoginPage() {
                 Username
               </Label>
               <div className="relative">
-                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-white/60 text-lg">
-                  person
-                </span>
+                <Person className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 w-5 h-5" />
                 <Input
                   id="username"
                   type="text"
@@ -115,7 +112,7 @@ export default function LoginPage() {
               </div>
               {errors.username && (
                 <p className="text-xs text-red-500 flex items-center gap-1">
-                  <span className="material-icons text-xs">error</span>
+                  <Error className="w-3 h-3" />
                   {errors.username}
                 </p>
               )}
@@ -127,9 +124,7 @@ export default function LoginPage() {
                 Password
               </Label>
               <div className="relative">
-                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-white/60 text-lg">
-                  lock
-                </span>
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 w-5 h-5" />
                 <Input
                   id="password"
                   type="password"
@@ -145,7 +140,7 @@ export default function LoginPage() {
               </div>
               {errors.password && (
                 <p className="text-xs text-red-500 flex items-center gap-1">
-                  <span className="material-icons text-xs">error</span>
+                  <Error className="w-3 h-3" />
                   {errors.password}
                 </p>
               )}
@@ -181,12 +176,12 @@ export default function LoginPage() {
             >
               {isLoading ? (
                 <>
-                  <span className="material-icons animate-spin text-xl mr-2">refresh</span>
+                  <Refresh className="animate-spin w-5 h-5 mr-2" />
                   Signing in...
                 </>
               ) : (
                 <>
-                  <span className="material-icons text-xl mr-2">login</span>
+                  <Login className="w-5 h-5 mr-2" />
                   Sign In
                 </>
               )}
@@ -205,7 +200,7 @@ export default function LoginPage() {
 
           {/* Security Badge */}
           <div className="mt-6 flex items-center justify-center gap-2 text-xs text-white/70">
-            <span className="material-icons text-sm text-green-500">verified_user</span>
+            <VerifiedUser className="w-4 h-4 text-green-500" />
             <span>Secured with end-to-end encryption</span>
           </div>
         </div>
