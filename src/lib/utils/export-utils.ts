@@ -21,7 +21,7 @@ export interface ChartImageData {
   userRolesChart?: string;
 }
 
-export const exportToPDF = async (data: ExportData, chartImages?: ChartImageData): Promise<void> => {
+export const exportToPDF = async (data: ExportData, _chartImages?: ChartImageData): Promise<void> => {
   const doc = new jsPDF('l', 'mm', [297, 210]); // Landscape A4
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
