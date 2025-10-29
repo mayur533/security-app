@@ -73,7 +73,6 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
 
   const fetchUserData = async (userId: number) => {
     try {
-      setIsLoadingUser(true);
       const user = await usersService.getById(userId);
       setFormData({
         username: user.username,
@@ -91,8 +90,6 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
     } catch (error) {
       console.error('Failed to fetch user:', error);
       toast.error('Failed to load user data');
-    } finally {
-      setIsLoadingUser(false);
     }
   };
 
