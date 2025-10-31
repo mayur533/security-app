@@ -2,6 +2,7 @@ import { API_ENDPOINTS, getAuthHeaders } from '@/lib/config/api';
 
 export interface SecurityOfficer {
   id: number;
+  username?: string;
   name: string;
   contact: string;
   email?: string;
@@ -15,6 +16,7 @@ export interface SecurityOfficer {
 }
 
 export interface OfficerCreateData {
+  username: string;
   name: string;
   contact: string;
   email?: string;
@@ -25,6 +27,7 @@ export interface OfficerCreateData {
 }
 
 export interface OfficerUpdateData {
+  username?: string;
   name?: string;
   contact?: string;
   email?: string;

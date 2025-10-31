@@ -56,6 +56,7 @@ export default function SecurityOfficersPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   
   const [formData, setFormData] = useState({
+    username: '',
     name: '',
     contact: '',
     email: '',
@@ -153,6 +154,7 @@ export default function SecurityOfficersPage() {
   const handleAddOfficer = () => {
     setEditingOfficer(null);
     setFormData({
+      username: '',
       name: '',
       contact: '',
       email: '',
@@ -166,6 +168,7 @@ export default function SecurityOfficersPage() {
   const handleEditOfficer = (officer: SecurityOfficer) => {
     setEditingOfficer(officer);
     setFormData({
+      username: officer.username || '',
       name: officer.name,
       contact: officer.contact,
       email: officer.email || '',
@@ -226,6 +229,11 @@ export default function SecurityOfficersPage() {
       return;
     }
 
+    if (!editingOfficer && !formData.username) {
+      toast.error('Username is required');
+      return;
+    }
+
     if (isSubmitting) {
       return; // Prevent double submission
     }
@@ -236,6 +244,7 @@ export default function SecurityOfficersPage() {
       if (editingOfficer) {
         // Update existing officer
         await officersService.update(editingOfficer.id, {
+          username: formData.username || undefined,
           name: formData.name,
           contact: formData.contact,
           email: formData.email || undefined,
@@ -243,7 +252,12 @@ export default function SecurityOfficersPage() {
         });
         toast.success('Officer updated successfully');
       } else {
-        // Validate password for new officers
+        // Validate required fields for new officers
+        if (!formData.username || !formData.username.trim()) {
+          toast.error('Username is required');
+          setIsSubmitting(false);
+          return;
+        }
         if (!formData.password || formData.password.length < 6) {
           toast.error('Password is required and must be at least 6 characters');
           setIsSubmitting(false);
@@ -252,6 +266,7 @@ export default function SecurityOfficersPage() {
         
         // Create new officer
         await officersService.create({
+          username: formData.username,
           name: formData.name,
           contact: formData.contact,
           password: formData.password,
@@ -662,7 +677,7 @@ export default function SecurityOfficersPage() {
               <TableHeader>
                 <TableRow className="border-b bg-muted/30 hover:bg-muted/30">
                   <TableHead className="text-muted-foreground text-sm font-semibold">Officer Name</TableHead>
-                  <TableHead className="text-muted-foreground text-sm font-semibold">ID</TableHead>
+                  <TableHead className="text-muted-foreground text-sm font-semibold">Username</TableHead>
                   <TableHead className="text-muted-foreground text-sm font-semibold">Assigned Geofence</TableHead>
                   <TableHead className="text-muted-foreground text-sm font-semibold">Contact</TableHead>
                   <TableHead className="text-muted-foreground text-sm font-semibold">Status</TableHead>
@@ -672,7 +687,7 @@ export default function SecurityOfficersPage() {
               <TableBody>
                 {paginatedOfficers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
+                  <TableCell colSpan={7} className="text-center py-12">
                     <span className="material-icons text-6xl text-muted-foreground mb-2">
                       search_off
                     </span>
@@ -696,7 +711,10 @@ export default function SecurityOfficersPage() {
                       </div>
                     </TableCell>
                     <TableCell className="py-4 px-4">
-                      <span className="text-sm font-mono">SO-{officer.id.toString().padStart(3, '0')}</span>
+                      <div className="text-sm font-medium">{officer.username || `SO-${officer.id.toString().padStart(3, '0')}`}</div>
+                      {officer.username && (
+                        <div className="text-xs text-muted-foreground">ID: {officer.id}</div>
+                      )}
                     </TableCell>
                     <TableCell className="py-4 px-4">
                       <div className="flex items-center space-x-2">
@@ -786,7 +804,23 @@ export default function SecurityOfficersPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Officer Name</label>
+                  <label className="block text-sm font-medium mb-1">Username *</label>
+                  <input
+                    type="text"
+                    required={!editingOfficer}
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Enter unique username"
+                    disabled={!!editingOfficer}
+                  />
+                  {editingOfficer && (
+                    <p className="text-xs text-muted-foreground mt-1">Username cannot be changed after creation</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Officer Name *</label>
                   <input
                     type="text"
                     required
