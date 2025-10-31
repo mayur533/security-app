@@ -32,6 +32,7 @@ export default function SecurityOfficersPage() {
   const { searchQuery } = useSearch();
   const [officers, setOfficers] = useState<SecurityOfficer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOfficer, setEditingOfficer] = useState<SecurityOfficer | null>(null);
@@ -208,6 +209,12 @@ export default function SecurityOfficersPage() {
       return;
     }
 
+    if (isSubmitting) {
+      return; // Prevent double submission
+    }
+
+    setIsSubmitting(true);
+
     try {
       if (editingOfficer) {
         // Update existing officer
@@ -222,6 +229,7 @@ export default function SecurityOfficersPage() {
         // Validate password for new officers
         if (!formData.password || formData.password.length < 6) {
           toast.error('Password is required and must be at least 6 characters');
+          setIsSubmitting(false);
           return;
         }
         
@@ -242,6 +250,8 @@ export default function SecurityOfficersPage() {
       console.error('Submit error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to save officer';
       toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -857,15 +867,24 @@ export default function SecurityOfficersPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-muted/50 transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 border rounded-lg hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {editingOfficer ? 'Update Officer' : 'Add Officer'}
+                  {isSubmitting ? (
+                    <>
+                      <span className="material-icons animate-spin text-lg">refresh</span>
+                      {editingOfficer ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : (
+                    editingOfficer ? 'Update Officer' : 'Add Officer'
+                  )}
                 </button>
               </div>
             </form>

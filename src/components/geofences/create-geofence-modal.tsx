@@ -141,6 +141,10 @@ export function CreateGeofenceModal({ isOpen, onClose, onRefresh }: CreateGeofen
       return;
     }
 
+    if (isSubmitting) {
+      return; // Prevent double submission
+    }
+
     setIsSubmitting(true);
 
     try {

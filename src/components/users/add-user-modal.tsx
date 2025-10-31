@@ -142,6 +142,10 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
       return;
     }
 
+    if (isSubmitting) {
+      return; // Prevent double submission
+    }
+
     try {
       setIsSubmitting(true);
 
