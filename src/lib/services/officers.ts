@@ -15,7 +15,6 @@ export interface SecurityOfficer {
 }
 
 export interface OfficerCreateData {
-  officer_id: string;
   name: string;
   contact: string;
   email?: string;
