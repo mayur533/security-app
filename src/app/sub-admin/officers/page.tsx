@@ -19,6 +19,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { CardLoading, TableLoading } from '@/components/ui/content-loading';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { officersService, type SecurityOfficer } from '@/lib/services/officers';
 import { geofencesService, type Geofence } from '@/lib/services/geofences';
 import { useSearch } from '@/lib/contexts/search-context';
@@ -36,6 +46,7 @@ export default function SecurityOfficersPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOfficer, setEditingOfficer] = useState<SecurityOfficer | null>(null);
+  const [deleteOfficerId, setDeleteOfficerId] = useState<number | null>(null);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showPerPageMenu, setShowPerPageMenu] = useState(false);
@@ -174,16 +185,22 @@ export default function SecurityOfficersPage() {
     setSelectedGeofencePreview(geofence || null);
   };
 
-  const handleDeleteOfficer = async (id: number) => {
-    if (confirm('Are you sure you want to delete this officer?')) {
-      try {
-        await officersService.delete(id);
-        toast.success('Officer deleted successfully');
-        fetchOfficers(); // Refresh list
-      } catch (error) {
-        console.error('Delete error:', error);
-        toast.error('Failed to delete officer');
-      }
+  const handleDeleteOfficer = (id: number) => {
+    setDeleteOfficerId(id);
+  };
+
+  const confirmDeleteOfficer = async () => {
+    if (!deleteOfficerId) return;
+    
+    try {
+      await officersService.delete(deleteOfficerId);
+      toast.success('Officer deleted successfully');
+      setDeleteOfficerId(null);
+      fetchOfficers(); // Refresh list
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete officer');
+      setDeleteOfficerId(null);
     }
   };
 
@@ -891,6 +908,38 @@ export default function SecurityOfficersPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteOfficerId} onOpenChange={() => setDeleteOfficerId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="material-icons text-red-600">warning</span>
+              Delete Security Officer
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-2">
+              Are you sure you want to delete this security officer? This action cannot be undone and will permanently remove the officer and all associated data.
+              {deleteOfficerId && (
+                <span className="block mt-2 font-semibold text-foreground">
+                  Officer: {officers.find(o => o.id === deleteOfficerId)?.name || 'Unknown'}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteOfficerId(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteOfficer}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <span className="material-icons text-sm mr-2">delete</span>
+              Delete Officer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
