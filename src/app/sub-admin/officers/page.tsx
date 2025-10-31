@@ -47,6 +47,7 @@ export default function SecurityOfficersPage() {
     name: '',
     contact: '',
     email: '',
+    password: '',
     assigned_geofence: '',
   });
   const [geofences, setGeofences] = useState<Geofence[]>([]);
@@ -143,6 +144,7 @@ export default function SecurityOfficersPage() {
       name: '',
       contact: '',
       email: '',
+      password: '',
       assigned_geofence: '',
     });
     setSelectedGeofencePreview(null);
@@ -155,6 +157,7 @@ export default function SecurityOfficersPage() {
       name: officer.name,
       contact: officer.contact,
       email: officer.email || '',
+      password: '', // Don't populate password when editing
       assigned_geofence: officer.assigned_geofence?.toString() || '',
     });
     // Set the preview for the assigned geofence
@@ -216,12 +219,17 @@ export default function SecurityOfficersPage() {
         });
         toast.success('Officer updated successfully');
       } else {
+        // Validate password for new officers
+        if (!formData.password || formData.password.length < 6) {
+          toast.error('Password is required and must be at least 6 characters');
+          return;
+        }
+        
         // Create new officer
         await officersService.create({
-          officer_id: `OFF-${Date.now()}`, // Auto-generate officer ID
           name: formData.name,
           contact: formData.contact,
-          password: 'officer123', // Default password
+          password: formData.password,
           email: formData.email || undefined,
           assigned_geofence: formData.assigned_geofence ? parseInt(formData.assigned_geofence) : undefined,
         });
@@ -785,6 +793,21 @@ export default function SecurityOfficersPage() {
                     placeholder="officer@security.com"
                   />
                 </div>
+
+                {!editingOfficer && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Password *</label>
+                    <input
+                      type="password"
+                      required={!editingOfficer}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Minimum 6 characters"
+                      minLength={6}
+                    />
+                  </div>
+                )}
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium mb-1">Assigned Geofence</label>
