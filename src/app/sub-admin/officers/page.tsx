@@ -230,6 +230,16 @@ export default function SecurityOfficersPage() {
       return;
     }
 
+    if (!formData.email) {
+      toast.error('Email is required');
+      return;
+    }
+
+    if (!formData.assigned_geofence) {
+      toast.error('Assigned geofence is required');
+      return;
+    }
+
     if (!editingOfficer && !formData.username) {
       toast.error('Username is required');
       return;
@@ -264,15 +274,16 @@ export default function SecurityOfficersPage() {
           setIsSubmitting(false);
           return;
         }
-        
-        // Create new officer
+
+        // Create new officer with full required payload
         await officersService.create({
           username: formData.username,
+          password: formData.password,
           name: formData.name,
           contact: formData.contact,
-          password: formData.password,
-          email: formData.email || undefined,
-          assigned_geofence: formData.assigned_geofence ? parseInt(formData.assigned_geofence) : undefined,
+          email: formData.email,
+          assigned_geofence: parseInt(formData.assigned_geofence),
+          is_active: true,
         });
         toast.success('Officer created successfully');
       }
@@ -774,7 +785,7 @@ export default function SecurityOfficersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Email Address</label>
+                  <label className="block text-sm font-medium mb-1">Email Address *</label>
                   <input
                     type="email"
                     required
@@ -801,13 +812,14 @@ export default function SecurityOfficersPage() {
                 )}
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Assigned Geofence</label>
+                  <label className="block text-sm font-medium mb-1">Assigned Geofence *</label>
                   <select
                     value={formData.assigned_geofence}
                     onChange={(e) => handleGeofenceChange(e.target.value)}
+                    required
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="">Select Geofence (Optional)</option>
+                    <option value="">Select Geofence</option>
                     {geofences.map((geofence) => (
                       <option key={geofence.id} value={geofence.id.toString()}>
                         {geofence.name} (ID: {geofence.id})

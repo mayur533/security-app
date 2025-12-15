@@ -5,8 +5,8 @@ export interface SecurityOfficer {
   username?: string;
   name: string;
   contact: string;
-  email?: string;
-  assigned_geofence?: number;
+  email: string;
+  assigned_geofence: number;
   geofence_name?: string;
   organization: number;
   is_active: boolean;
@@ -19,11 +19,11 @@ export interface OfficerCreateData {
   username: string;
   name: string;
   contact: string;
-  email?: string;
+  email: string;
   password: string;
-  assigned_geofence?: number;
+  assigned_geofence: number;
   organization?: number; // Optional - auto-assigned by backend for Sub-Admin
-  is_active?: boolean;
+  is_active: boolean;
 }
 
 export interface OfficerUpdateData {
