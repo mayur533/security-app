@@ -3,12 +3,18 @@
  * Central configuration for all API endpoints and settings
  */
 
+declare const process: {
+  env: {
+    [key: string]: string | undefined;
+  };
+};
+
 // Backend API Base URL
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://safetnet-backend.onrender.com',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://safetnet.onrender.com',
   AUTH_BASE_URL: process.env.NEXT_PUBLIC_API_URL 
     ? `${process.env.NEXT_PUBLIC_API_URL}/api/auth` 
-    : 'https://safetnet-backend.onrender.com/api/auth',
+    : 'https://safetnet.onrender.com/api/auth',
   TIMEOUT: 30000, // 30 seconds
 };
 
