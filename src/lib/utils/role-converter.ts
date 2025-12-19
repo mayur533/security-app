@@ -8,6 +8,7 @@ export const convertRoleToAPI = (frontendRole: string): string => {
   const roleMap: Record<string, string> = {
     'Admin': 'SUPER_ADMIN',
     'Sub-Admin': 'SUB_ADMIN',
+    'Security Officer': 'SECURITY_OFFICER',
     'Security': 'USER',
     'Resident': 'USER',
     'User': 'USER',
@@ -21,6 +22,7 @@ export const convertRoleFromAPI = (apiRole: string): string => {
   const roleMap: Record<string, string> = {
     'SUPER_ADMIN': 'Admin',
     'SUB_ADMIN': 'Sub-Admin',
+    'SECURITY_OFFICER': 'Security Officer',
     'USER': 'User',
   };
 
@@ -32,6 +34,7 @@ export const getRoleDisplayLabel = (role: string): string => {
   const labelMap: Record<string, string> = {
     'SUPER_ADMIN': 'SUPER ADMIN',
     'SUB_ADMIN': 'SUB ADMIN',
+    'SECURITY_OFFICER': 'SECURITY OFFICER',
     'USER': 'USER',
   };
 

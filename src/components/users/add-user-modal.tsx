@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { usersService } from '@/lib/services/users';
 import { LoadingDots } from '@/components/ui/loading-dots';
+import { convertRoleToAPI, convertRoleFromAPI } from '@/lib/utils/role-converter';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'USER',
+    role: 'User',
     assignedGeofence: '',
     fullName: '',
     isActive: true,
@@ -62,7 +63,7 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'USER',
+        role: 'User',
         assignedGeofence: '',
         fullName: '',
         isActive: true,
@@ -82,7 +83,7 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
         email: user.email,
         password: '',
         confirmPassword: '',
-        role: user.role,
+        role: convertRoleFromAPI(user.role),
         assignedGeofence: '',
         fullName: user.full_name || '',
         isActive: user.is_active,
@@ -112,6 +113,10 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
+    }
+
+    if (!isEditing && !formData.role) {
+      newErrors.role = 'Role is required';
     }
 
     if (!isEditing) {
@@ -173,7 +178,7 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
           first_name: firstName,
           last_name: lastName,
           full_name: formData.fullName,
-          role: 'USER',
+          role: convertRoleToAPI(formData.role),
         });
         toast.success('User created successfully');
       }
@@ -196,7 +201,7 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'USER',
+      role: 'User',
       assignedGeofence: '',
       fullName: '',
       isActive: true,
@@ -263,6 +268,35 @@ export function AddUserModal({ isOpen, onClose, editingUserId, onUserUpdated }: 
             </div>
             {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
           </div>
+
+          {/* Role Selection - Only show when creating new user */}
+          {!isEditing && (
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-sm font-medium">
+                Role <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg z-10">
+                  admin_panel_settings
+                </span>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) => handleChange('role', value)}
+                >
+                  <SelectTrigger className={`pl-10 ${errors.role ? 'border-red-500' : ''}`}>
+                    <SelectValue placeholder="Select user role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="User">User</SelectItem>
+                    <SelectItem value="Security Officer">Security Officer</SelectItem>
+                    <SelectItem value="Sub-Admin">Sub-Admin</SelectItem>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {errors.role && <p className="text-xs text-red-500 mt-1">{errors.role}</p>}
+            </div>
+          )}
 
           {/* Password Fields - Only show when creating new user */}
           {!isEditing && (
